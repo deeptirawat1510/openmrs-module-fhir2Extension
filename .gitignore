@@ -1,7 +1,11 @@
 *.class
+*.iml
 .settings
 .project
 .classpath
+.DS_Store
+.idea
+
 target
 
 # Package Files #
