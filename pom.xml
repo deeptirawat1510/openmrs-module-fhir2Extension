@@ -12,8 +12,8 @@
 	<artifactId>fhir2Extension</artifactId>
 	<version>0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<name>Basic Module</name>
-	<description>FHIR2 module extensions.</description>
+	<name>FHIR2 module extensions</name>
+	<description>FHIR2 module extensions</description>
 
 	<url>https://wiki.openmrs.org/x/FQ4z</url>
 
@@ -86,27 +86,28 @@
 			</snapshots>
 		</pluginRepository>
 	</pluginRepositories>
-
-	<dependencies>
-		<dependency>
-			<groupId>org.openmrs.module</groupId>
-			<artifactId>fhir2-api</artifactId>
-			<version>${openmrs.fhir2.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.openmrs.module</groupId>
-			<artifactId>fhir2-omod</artifactId>
-			<version>${openmrs.fhir2.version}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.openmrs.api</groupId>
-			<artifactId>openmrs-api</artifactId>
-			<version>${openmrs.platform.version}</version>
-			<scope>provided</scope>
-		</dependency>
-	</dependencies>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.openmrs.module</groupId>
+				<artifactId>fhir2-api</artifactId>
+				<version>${openmrs.fhir2.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.openmrs.module</groupId>
+				<artifactId>fhir2-omod</artifactId>
+				<version>${openmrs.fhir2.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.openmrs.api</groupId>
+				<artifactId>openmrs-api</artifactId>
+				<version>${openmrs.platform.version}</version>
+				<scope>provided</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<build>
 		<resources>

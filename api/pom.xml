@@ -9,19 +9,17 @@
 
 	<artifactId>fhir2Extension-api</artifactId>
 	<packaging>jar</packaging>
-	<name>Basic Module API</name>
-	<description>API project for Basic Module</description>
+	<name>FHIR2 module extensions API</name>
+	<description>API project for FHIR2 Extensions module</description>
 
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.openmrs.module</groupId>
-				<artifactId>fhir2-api</artifactId>
-			</dependency>
-			<dependency>
-				<groupId>org.openmrs.api</groupId>
-				<artifactId>openmrs-api</artifactId>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
+	<dependencies>
+		<dependency>
+			<groupId>org.openmrs.module</groupId>
+			<artifactId>fhir2-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.openmrs.api</groupId>
+			<artifactId>openmrs-api</artifactId>
+		</dependency>
+	</dependencies>
 </project>

@@ -8,16 +8,16 @@ import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.openmrs.module.fhir2.api.FhirDiagnosticReportService;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-@Transactional
-@Service
+@Primary
+@Component
 public class ObsBasedDiagnosticReportService implements FhirDiagnosticReportService {
 	
 	public IBundleProvider searchForDiagnosticReports(ReferenceAndListParam referenceAndListParam,

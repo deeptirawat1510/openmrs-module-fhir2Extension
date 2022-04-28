@@ -9,8 +9,8 @@
 
 	<artifactId>fhir2Extension-omod</artifactId>
 	<packaging>jar</packaging>
-	<name>Basic Module OMOD</name>
-	<description>OpenMRS module project for Basic Module</description>
+	<name>FHIR2 module extensions OMOD</name>
+	<description>OpenMRS module project for FHIR2 Extensions</description>
 
 	<dependencies>
         <dependency>

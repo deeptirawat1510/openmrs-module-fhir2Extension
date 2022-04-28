@@ -7,23 +7,23 @@
 	<name>${project.parent.name}</name>
 	<version>${project.parent.version}</version>
 	<package>${MODULE_PACKAGE}</package>
-	<author>Ben Wolfe</author>
+	<author>Angshuman</author>
 	<description>
 			${project.parent.description}
 	</description>
 
-	<activator>${MODULE_PACKAGE}.BasicModuleActivator</activator>
+	<activator>org.openmrs.module.fhirExtension.FhirExtensionModuleActivator</activator>
 	
 	<!-- <updateURL>https://modules.openmrs.org/modules/download/@MODULE_ID@/update.rdf</updateURL> -->
 	<!-- /Base Module Properties -->
 	
 	<require_version>${openmrs.platform.version}</require_version>
 	
-	<!-- Extensions -->
-	<extension>
-		<point>org.openmrs.admin.list</point>
-		<class>${MODULE_PACKAGE}.extension.html.AdminList</class>
-	</extension>
+<!--	 Extensions -->
+<!--	<extension>-->
+<!--		<point>org.openmrs.admin.list</point>-->
+<!--		<class>${MODULE_PACKAGE}.extension.html.AdminList</class>-->
+<!--	</extension>-->
 	
 	
 	<!-- AOP
@@ -54,24 +54,6 @@
 	</globalProperty>
 	/Required Global Properties -->
 	
-	<!--
-	<dwr>
-		<allow>
-			<create creator="new" javascript="DWRFormEntryService">
-				<param name="class" value="org.openmrs.module.@MODULE_ID@.web.DWRFormEntryService"/>
-				<include method="enterForm"/>
-			</create>
-		</allow>
-
-		<signatures>
-			<![CDATA[
-			import @MODULE_PACKAGE@.web.DWRFormEntryService;
-			DWRFormEntryService.enterForm(Integer patientId, Integer formId, boolean useEncounter, List<String> fields);
-			]]>
-		</signatures>	
-	</dwr>
-	-->
-	
 	<!-- Servlets -->
 	<!-- Accessed through the url /pageContext()/moduleServlet/<moduleId>/<servlet-name> 
 	<servlet>
@@ -84,6 +66,15 @@
 	
 	<!-- Internationalization -->
 	<!-- All message codes should start with @MODULE_ID@.* -->
+	<aware_of_modules>
+		<aware_of_module>org.openmrs.module.legacyui</aware_of_module>
+	</aware_of_modules>
+
+	<require_modules>
+		<require_module>org.openmrs.event</require_module>
+		<require_module>org.openmrs.module.fhir2</require_module>
+	</require_modules>
+
 	<messages>
 		<lang>en</lang>
 		<file>messages.properties</file>
