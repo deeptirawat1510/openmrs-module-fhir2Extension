@@ -30,7 +30,7 @@
 
     <properties>
 			<openmrs.platform.version>2.1.6</openmrs.platform.version>
-			<openmrs.fhir2.version>1.4.0-SNAPSHOT</openmrs.fhir2.version>
+			<openmrs.fhir2.version>1.3.0</openmrs.fhir2.version>
 			<junitVersion>4.13.1</junitVersion>
 			<lombokVersion>1.18.16</lombokVersion>
     </properties>

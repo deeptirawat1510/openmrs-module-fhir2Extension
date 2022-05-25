@@ -9,8 +9,13 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.openmrs.Obs;
 import org.openmrs.api.ObsService;
+import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.FhirDiagnosticReportService;
 import org.openmrs.module.fhir2.api.dao.FhirDiagnosticReportDao;
+import org.openmrs.module.fhir2.api.search.SearchQuery;
+import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
+import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
+import org.openmrs.module.fhir2.api.translators.DiagnosticReportTranslator;
 import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
 import org.openmrs.module.fhirExtension.translators.DiagnosticReportObsTranslator;
 import org.openmrs.module.fhirExtension.validators.DiagnosticReportObsValidator;
@@ -43,11 +48,15 @@ public class ObsBasedDiagnosticReportService implements FhirDiagnosticReportServ
 	@Autowired
 	private DiagnosticReportObsValidator validator;
 	
+	@Autowired
+	private SearchQuery<FhirDiagnosticReport, DiagnosticReport, FhirDiagnosticReportDao, DiagnosticReportTranslator, SearchQueryInclude<DiagnosticReport>> searchQuery;
+	
+	@Autowired
+	private SearchQueryInclude<DiagnosticReport> searchQueryInclude;
+	
 	@Override
 	public DiagnosticReport get(@Nonnull String s) {
-		DiagnosticReport diagnosticReport = new DiagnosticReport();
-		diagnosticReport.setId(s + "4321567");
-		return diagnosticReport;
+		return diagnosticReportObsTranslator.toFhirResource(fhirDiagnosticReportDao.get(s));
 	}
 	
 	@Override
@@ -77,16 +86,26 @@ public class ObsBasedDiagnosticReportService implements FhirDiagnosticReportServ
 	}
 	
 	@Override
-	public void delete(@Nonnull String s) {
-		
+	public DiagnosticReport delete(@Nonnull String s) {
+		return null;
 	}
 	
 	@Override
-	public IBundleProvider searchForDiagnosticReports(ReferenceAndListParam referenceAndListParam,
-	        ReferenceAndListParam referenceAndListParam1, DateRangeParam dateRangeParam,
-	        TokenAndListParam tokenAndListParam, ReferenceAndListParam referenceAndListParam2,
-	        TokenAndListParam tokenAndListParam1, DateRangeParam dateRangeParam1, SortSpec sortSpec, HashSet<Include> hashSet) {
-		return null;
+	public IBundleProvider searchForDiagnosticReports(ReferenceAndListParam encounterReference,
+	        ReferenceAndListParam patientReference, DateRangeParam issueDate, TokenAndListParam code,
+	        ReferenceAndListParam result, TokenAndListParam id, DateRangeParam lastUpdated, SortSpec sort,
+	        HashSet<Include> includes) {
+		SearchParameterMap theParams = new SearchParameterMap()
+		        .addParameter(FhirConstants.ENCOUNTER_REFERENCE_SEARCH_HANDLER, encounterReference)
+		        .addParameter(FhirConstants.PATIENT_REFERENCE_SEARCH_HANDLER, patientReference)
+		        .addParameter(FhirConstants.DATE_RANGE_SEARCH_HANDLER, issueDate)
+		        .addParameter(FhirConstants.CODED_SEARCH_HANDLER, code)
+		        .addParameter(FhirConstants.RESULT_SEARCH_HANDLER, result)
+		        .addParameter(FhirConstants.COMMON_SEARCH_HANDLER, FhirConstants.ID_PROPERTY, id)
+		        .addParameter(FhirConstants.COMMON_SEARCH_HANDLER, FhirConstants.LAST_UPDATED_PROPERTY, lastUpdated)
+		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes).setSortSpec(sort);
+		return searchQuery.getQueryResults(theParams, fhirDiagnosticReportDao, diagnosticReportObsTranslator,
+		    searchQueryInclude);
 	}
 	
 	private Set<Obs> createObs(Set<Obs> results) {
