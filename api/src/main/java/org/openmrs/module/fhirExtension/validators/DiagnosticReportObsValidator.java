@@ -2,6 +2,7 @@ package org.openmrs.module.fhirExtension.validators;
 
 import ca.uhn.fhir.rest.server.exceptions.UnprocessableEntityException;
 import org.apache.commons.lang3.tuple.Pair;
+import org.hl7.fhir.r4.model.OperationOutcome;
 import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
 import org.springframework.stereotype.Component;
 
@@ -11,7 +12,6 @@ import java.util.function.Predicate;
 import static java.util.Arrays.asList;
 import static java.util.Objects.isNull;
 import static org.apache.commons.lang3.tuple.Pair.of;
-import static org.openmrs.module.fhir2.api.util.FhirUtils.createExceptionErrorOperationOutcome;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
 @Component
@@ -44,4 +44,13 @@ public class DiagnosticReportObsValidator {
             }
         });
     }
+	
+	private OperationOutcome createExceptionErrorOperationOutcome(String diagnostics) {
+		OperationOutcome outcome = new OperationOutcome();
+		OperationOutcome.OperationOutcomeIssueComponent issue = outcome.addIssue();
+		issue.setCode(OperationOutcome.IssueType.BUSINESSRULE);
+		issue.setSeverity(OperationOutcome.IssueSeverity.ERROR);
+		issue.setDiagnostics(diagnostics);
+		return outcome;
+	}
 }
