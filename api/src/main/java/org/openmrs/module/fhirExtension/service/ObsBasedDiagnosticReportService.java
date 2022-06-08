@@ -70,9 +70,8 @@ public class ObsBasedDiagnosticReportService implements FhirDiagnosticReportServ
 			validator.validate(fhirDiagnosticReport);
 			Set<Obs> createdObs = createObs(fhirDiagnosticReport.getResults());
 			fhirDiagnosticReport.setResults(createdObs);
-			FhirDiagnosticReport createdFhirDiagnosticReport = fhirDiagnosticReportDao.createOrUpdate(fhirDiagnosticReport);
-			diagnosticReport.setId(createdFhirDiagnosticReport.getUuid());
-			return diagnosticReport;
+			return diagnosticReportObsTranslatorImpl.toFhirResource(fhirDiagnosticReportDao
+			        .createOrUpdate(fhirDiagnosticReport));
 		}
 		catch (Exception exception) {
 			System.out.println("Exception while saving diagnostic report: " + exception.getMessage());
