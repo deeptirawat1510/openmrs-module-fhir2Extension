@@ -1,24 +1,31 @@
 package org.openmrs.module.fhirExtension.service;
 
+import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
 import ca.uhn.fhir.rest.param.DateRangeParam;
 import ca.uhn.fhir.rest.param.ReferenceAndListParam;
 import ca.uhn.fhir.rest.param.TokenAndListParam;
+import lombok.extern.log4j.Log4j2;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.openmrs.Obs;
 import org.openmrs.api.ObsService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.FhirDiagnosticReportService;
+import org.openmrs.module.fhir2.api.dao.FhirDao;
 import org.openmrs.module.fhir2.api.dao.FhirDiagnosticReportDao;
+import org.openmrs.module.fhir2.api.impl.BaseFhirService;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
 import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
+import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
-import org.openmrs.module.fhirExtension.translators.DiagnosticReportObsTranslator;
+import org.openmrs.module.fhir2.narrative.OpenmrsThymeleafNarrativeGenerator;
+import org.openmrs.module.fhirExtension.translators.ObsBasedDiagnosticReportTranslator;
 import org.openmrs.module.fhirExtension.validators.DiagnosticReportObsValidator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
@@ -31,7 +38,8 @@ import java.util.stream.Collectors;
 
 @Primary
 @Component
-public class ObsBasedDiagnosticReportService implements FhirDiagnosticReportService {
+@Log4j2
+public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticReport, FhirDiagnosticReport> implements FhirDiagnosticReportService {
 	
 	static final String SAVE_OBS_MESSAGE = "Created when saving a Fhir Diagnostic Report";
 	
@@ -39,7 +47,7 @@ public class ObsBasedDiagnosticReportService implements FhirDiagnosticReportServ
 	private FhirDiagnosticReportDao fhirDiagnosticReportDao;
 	
 	@Autowired
-	private DiagnosticReportObsTranslator diagnosticReportObsTranslatorImpl;
+	private ObsBasedDiagnosticReportTranslator obsBasedDiagnosticReportTranslator;
 	
 	@Autowired
 	private ObsService obsService;
@@ -48,46 +56,40 @@ public class ObsBasedDiagnosticReportService implements FhirDiagnosticReportServ
 	private DiagnosticReportObsValidator validator;
 	
 	@Autowired
-	private SearchQuery<FhirDiagnosticReport, DiagnosticReport, FhirDiagnosticReportDao, DiagnosticReportObsTranslator, SearchQueryInclude<DiagnosticReport>> searchQuery;
+	private SearchQuery<FhirDiagnosticReport, DiagnosticReport, FhirDiagnosticReportDao, ObsBasedDiagnosticReportTranslator, SearchQueryInclude<DiagnosticReport>> searchQuery;
 	
 	@Autowired
 	private SearchQueryInclude<DiagnosticReport> searchQueryInclude;
 	
 	@Override
 	public DiagnosticReport get(@Nonnull String uuid) {
-		return diagnosticReportObsTranslatorImpl.toFhirResource(fhirDiagnosticReportDao.get(uuid));
-	}
-	
-	@Override
-	public List<DiagnosticReport> get(@Nonnull Collection<String> collection) {
-		return null;
+		return super.get(uuid);
 	}
 	
 	@Override
 	public DiagnosticReport create(@Nonnull DiagnosticReport diagnosticReport) {
 		try {
-			FhirDiagnosticReport fhirDiagnosticReport = diagnosticReportObsTranslatorImpl.toOpenmrsType(diagnosticReport);
+			FhirDiagnosticReport fhirDiagnosticReport = obsBasedDiagnosticReportTranslator.toOpenmrsType(diagnosticReport);
 			validator.validate(fhirDiagnosticReport);
 			Set<Obs> createdObs = createObs(fhirDiagnosticReport.getResults());
 			fhirDiagnosticReport.setResults(createdObs);
 			FhirDiagnosticReport createdFhirDiagnosticReport = fhirDiagnosticReportDao.createOrUpdate(fhirDiagnosticReport);
-			diagnosticReport.setId(createdFhirDiagnosticReport.getUuid());
-			return diagnosticReport;
+			return obsBasedDiagnosticReportTranslator.toFhirResource(createdFhirDiagnosticReport);
 		}
 		catch (Exception exception) {
-			System.out.println("Exception while saving diagnostic report: " + exception.getMessage());
+			log.error("Exception while saving diagnostic report: " + exception.getMessage());
 			throw exception;
 		}
 	}
 	
 	@Override
-	public DiagnosticReport update(@Nonnull String s, @Nonnull DiagnosticReport diagnosticReport) {
-		return null;
+	protected FhirDao<FhirDiagnosticReport> getDao() {
+		return fhirDiagnosticReportDao;
 	}
 	
 	@Override
-	public DiagnosticReport delete(@Nonnull String s) {
-		return null;
+	protected OpenmrsFhirTranslator<FhirDiagnosticReport, DiagnosticReport> getTranslator() {
+		return obsBasedDiagnosticReportTranslator;
 	}
 	
 	@Override
@@ -104,7 +106,7 @@ public class ObsBasedDiagnosticReportService implements FhirDiagnosticReportServ
 		        .addParameter(FhirConstants.COMMON_SEARCH_HANDLER, FhirConstants.ID_PROPERTY, id)
 		        .addParameter(FhirConstants.COMMON_SEARCH_HANDLER, FhirConstants.LAST_UPDATED_PROPERTY, lastUpdated)
 		        .addParameter(FhirConstants.INCLUDE_SEARCH_HANDLER, includes).setSortSpec(sort);
-		return searchQuery.getQueryResults(theParams, fhirDiagnosticReportDao, diagnosticReportObsTranslatorImpl,
+		return searchQuery.getQueryResults(theParams, fhirDiagnosticReportDao, obsBasedDiagnosticReportTranslator,
 		    searchQueryInclude);
 	}
 	
