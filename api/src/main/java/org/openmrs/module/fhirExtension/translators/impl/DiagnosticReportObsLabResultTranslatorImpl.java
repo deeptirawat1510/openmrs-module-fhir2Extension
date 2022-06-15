@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -36,7 +37,12 @@ public class DiagnosticReportObsLabResultTranslatorImpl implements DiagnosticRep
 	@Override
 	public Obs toOpenmrsType(@Nonnull LabResult labResult) {
 		if (labResult.isPanel()) {
-			return null;
+			Obs panel = labResult.newObs(labResult.getConcept());
+			labResult.getAllTests().stream()
+					.map(testInPanel -> createTestObs(labResult, testInPanel))
+					.filter(Objects::nonNull)
+					.forEach(panel::addGroupMember);
+			return panel;
 		} else {
 			return createTestObs(labResult, labResult.getConcept());
 		}

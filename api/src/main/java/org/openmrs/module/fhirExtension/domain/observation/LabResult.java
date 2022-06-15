@@ -5,6 +5,7 @@ import lombok.Getter;
 import org.openmrs.Concept;
 import org.openmrs.Obs;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
@@ -23,7 +24,11 @@ public class LabResult {
 	private BiFunction<Concept, String, Obs> obsFactory;
 	
 	public boolean isPanel() {
-		return concept.getSet();
+		return !concept.getSetMembers().isEmpty();
+	}
+	
+	public List<Concept> getAllTests() {
+		return this.concept.getSetMembers();
 	}
 	
 	public Obs newObs(Concept testConcept) {

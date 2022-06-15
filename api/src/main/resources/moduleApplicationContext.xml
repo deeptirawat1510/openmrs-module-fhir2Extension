@@ -11,13 +11,4 @@
   		    http://www.springframework.org/schema/context/spring-context-3.0.xsd">
     
     <context:component-scan base-package="org.openmrs.module.fhirExtension"/>
-
-    <bean class="org.springframework.context.support.PropertySourcesPlaceholderConfigurer">
-        <property name="ignoreUnresolvablePlaceholders" value="true" />
-        <property name="locations">
-            <list>
-                <value>classpath:fhirExtension.properties</value>
-            </list>
-        </property>
-    </bean>
 </beans>

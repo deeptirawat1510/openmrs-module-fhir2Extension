@@ -9,10 +9,8 @@ import org.openmrs.api.APIException;
 import org.openmrs.module.fhir2.api.translators.DiagnosticReportTranslator;
 import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
 import org.openmrs.module.fhirExtension.domain.observation.LabResult;
-import org.openmrs.module.fhirExtension.narrative.NarrativeGenerator;
 import org.openmrs.module.fhirExtension.translators.ObsBasedDiagnosticReportTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
@@ -34,17 +32,10 @@ public class ObsBasedDiagnosticReportTranslatorImpl implements ObsBasedDiagnosti
 	@Autowired
 	private DiagnosticReportObsLabResultTranslatorImpl diagnosticReportObsLabResultTranslator;
 	
-	@Value("${diagnosticreport.narratives.override}")
-	private boolean shouldOverrideNarratives;
-	
-	@Autowired
-	private NarrativeGenerator narrativeGenerator;
-	
 	@Override
 	public DiagnosticReport toFhirResource(@Nonnull FhirDiagnosticReport fhirDiagnosticReport) {
 		DiagnosticReport diagnosticReport = diagnosticReportTranslator.toFhirResource(fhirDiagnosticReport);
 		setPresentedForm(diagnosticReport, fhirDiagnosticReport);
-		updateNarratives(diagnosticReport);
 		return diagnosticReport;
 	}
 	
@@ -56,7 +47,7 @@ public class ObsBasedDiagnosticReportTranslatorImpl implements ObsBasedDiagnosti
 	}
 	
 	private void updateObsResults(FhirDiagnosticReport fhirDiagnosticReport, DiagnosticReport diagnosticReport) {
-		if(diagnosticReport.hasPresentedForm()){
+		if (diagnosticReport.hasPresentedForm()) {
 			Attachment labAttachment = diagnosticReport.getPresentedForm().get(0);
 			LabResult labResult = LabResult.builder()
 					.labReportUrl(labAttachment.getUrl())
@@ -107,12 +98,6 @@ public class ObsBasedDiagnosticReportTranslatorImpl implements ObsBasedDiagnosti
 			catch (ParseException e) {
 				throw new APIException(e);
 			}
-		}
-	}
-	
-	private void updateNarratives(DiagnosticReport diagnosticReport) {
-		if (shouldOverrideNarratives) {
-			narrativeGenerator.generateNarrative(diagnosticReport);
 		}
 	}
 }

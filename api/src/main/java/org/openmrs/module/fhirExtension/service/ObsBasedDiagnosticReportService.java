@@ -1,6 +1,5 @@
 package org.openmrs.module.fhirExtension.service;
 
-import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.server.IBundleProvider;
@@ -21,18 +20,14 @@ import org.openmrs.module.fhir2.api.search.SearchQueryInclude;
 import org.openmrs.module.fhir2.api.search.param.SearchParameterMap;
 import org.openmrs.module.fhir2.api.translators.OpenmrsFhirTranslator;
 import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
-import org.openmrs.module.fhir2.narrative.OpenmrsThymeleafNarrativeGenerator;
 import org.openmrs.module.fhirExtension.translators.ObsBasedDiagnosticReportTranslator;
 import org.openmrs.module.fhirExtension.validators.DiagnosticReportObsValidator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -60,11 +55,6 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 	
 	@Autowired
 	private SearchQueryInclude<DiagnosticReport> searchQueryInclude;
-	
-	@Override
-	public DiagnosticReport get(@Nonnull String uuid) {
-		return super.get(uuid);
-	}
 	
 	@Override
 	public DiagnosticReport create(@Nonnull DiagnosticReport diagnosticReport) {
