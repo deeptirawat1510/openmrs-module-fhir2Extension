@@ -10,12 +10,10 @@ import org.openmrs.Obs;
 import org.openmrs.api.ObsService;
 import org.openmrs.module.fhir2.api.dao.FhirDiagnosticReportDao;
 import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
-import org.openmrs.module.fhirExtension.translators.DiagnosticReportObsTranslator;
+import org.openmrs.module.fhirExtension.translators.impl.DiagnosticReportObsTranslatorImpl;
 import org.openmrs.module.fhirExtension.validators.DiagnosticReportObsValidator;
 
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
@@ -32,7 +30,7 @@ import static org.openmrs.module.fhirExtension.service.ObsBasedDiagnosticReportS
 public class ObsBasedDiagnosticReportServiceTest {
 	
 	@Mock
-	private DiagnosticReportObsTranslator translator;
+	private DiagnosticReportObsTranslatorImpl translator;
 	
 	@Mock
 	private DiagnosticReportObsValidator validator;
