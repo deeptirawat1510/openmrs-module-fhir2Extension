@@ -14,12 +14,16 @@ import org.openmrs.module.fhirExtension.translators.impl.DiagnosticReportObsLabR
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Stream.of;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -44,7 +48,7 @@ public class DiagnosticReportObsLabResultTranslatorTest {
 	private final DiagnosticReportObsLabResultTranslatorImpl diagnosticReportObsResultTranslatorHelper = new DiagnosticReportObsLabResultTranslatorImpl();
 	
 	@Test
-	public void shouldTranslateToObsWhenTestReportIsUploadedWithLabNotesForSingleTestWithoutAnyOrder() {
+	public void givenLabTest_WhenTestReportIsUploadedWithNotes_ShouldTranslateToObs() {
 		Concept testConcept = new Concept();
 		LabResult labResult = LabResult.builder().labReportUrl(REPORT_URL).labReportFileName(REPORT_NAME)
 		        .labReportNotes(LAB_TEST_NOTES).concept(testConcept).obsFactory(groupedObsFunction()).build();
@@ -70,30 +74,7 @@ public class DiagnosticReportObsLabResultTranslatorTest {
 	}
 	
 	@Test
-	public void shouldTranslateToObsWhenOnlyLabNotesAreAvailableForSingleTestWithoutAnyOrder() {
-		Concept testConcept = new Concept();
-		LabResult labResult = LabResult.builder().labReportNotes(LAB_TEST_NOTES).concept(testConcept)
-		        .obsFactory(groupedObsFunction()).build();
-		Concept labNotesConcept = newMockConcept("LAB_NOTES");
-		when(conceptService.getConceptByName("LAB_NOTES")).thenReturn(labNotesConcept);
-		
-		Obs obsModel = diagnosticReportObsResultTranslatorHelper.toOpenmrsType(labResult);
-		
-		assertEquals(testConcept, obsModel.getConcept());
-		Set<Obs> obsGroupMembersTopLevel = obsModel.getGroupMembers();
-		assertEquals(1, obsGroupMembersTopLevel.size());
-		
-		Obs obsModelSecondLevel = obsGroupMembersTopLevel.iterator().next();
-		assertEquals(testConcept, obsModelSecondLevel.getConcept());
-		Set<Obs> obsGroupMembersSecondLevel = obsModelSecondLevel.getGroupMembers();
-		assertEquals(1, obsGroupMembersSecondLevel.size());
-		
-		Obs notesObs = fetchObs(obsGroupMembersSecondLevel, "LAB_NOTES");
-		assertEquals(LAB_TEST_NOTES, notesObs.getValueText());
-	}
-	
-	@Test
-	public void shouldNotTranslateToObsWhenBothTestReportAndNotesAreNotPresentForSingleTestWithoutAnyOrder() {
+	public void givenLabTest_WhenTestReportIsNotUploaded_ShouldNotTranslateToObs() {
 		Concept testConcept = new Concept();
 		LabResult labResult = LabResult.builder().concept(testConcept).obsFactory(groupedObsFunction()).build();
 		
@@ -103,7 +84,53 @@ public class DiagnosticReportObsLabResultTranslatorTest {
 	}
 	
 	@Test
-	public void shouldTranslateToLabReportUrlNotesAndTitleWhenItIsPresentInObs() {
+	public void givenLabPanel_WhenTestReportIsUploadedWithLabNotes_ShouldTranslateToObs() {
+		Concept testConcept1 = new Concept();
+		Concept testConcept2 = new Concept();
+		Concept panel = new Concept();
+		List<ConceptSet> testsConcepts = new ArrayList<>();
+		testsConcepts.add(new ConceptSet(testConcept1, (double) 0));
+		testsConcepts.add(new ConceptSet(testConcept2, (double) 0));
+		panel.setConceptSets(testsConcepts);
+		LabResult labResult = LabResult.builder()
+				.labReportUrl(REPORT_URL)
+				.labReportFileName(REPORT_NAME)
+				.labReportNotes(LAB_TEST_NOTES)
+				.concept(panel)
+				.obsFactory(groupedObsFunction()).build();
+		mockConceptServiceGetConceptByName();
+
+		Obs obsModel = diagnosticReportObsResultTranslatorHelper.toOpenmrsType(labResult);
+
+		assertEquals(panel, obsModel.getConcept());
+		Set<Obs> obsGroupMembersTestLevel = obsModel.getGroupMembers();
+		assertEquals(2, obsGroupMembersTestLevel.size());
+
+		Map<Concept, Obs> testObsMap = obsGroupMembersTestLevel.stream()
+				.collect(Collectors.toMap(Obs::getConcept, Function.identity()));
+
+		testsConcepts.forEach(testConcept -> {
+			Obs testObs = testObsMap.get(testConcept.getConcept());
+			assertNotNull(testObs);
+
+			Set<Obs> obsGroupMembersSecondLevel = testObs.getGroupMembers();
+			assertEquals(1, obsGroupMembersSecondLevel.size());
+
+			Obs obsModelThirdLevel = obsGroupMembersSecondLevel.iterator().next();
+			Set<Obs> obsGroupMembersThirdLevel = obsModelThirdLevel.getGroupMembers();
+			assertEquals(3, obsGroupMembersThirdLevel.size());
+
+			Obs reportObs = fetchObs(obsGroupMembersThirdLevel, "LAB_REPORT");
+			assertEquals(REPORT_URL, reportObs.getValueText());
+			Obs resultObs = fetchObs(obsGroupMembersThirdLevel, "LAB_RESULT");
+			assertEquals(REPORT_NAME, resultObs.getValueText());
+			Obs notesObs = fetchObs(obsGroupMembersThirdLevel, "LAB_NOTES");
+			assertEquals(LAB_TEST_NOTES, notesObs.getValueText());
+		});
+	}
+	
+	@Test
+	public void givenObs_WhenLabReportLabResultAndLabNotesArePresent_ShouldTranslateToLabReportUrlNotesAndTitle() {
 		Obs topLevelObs = new Obs();
 		Obs labObs = new Obs();
 		labObs.setGroupMembers(of(childObs(LAB_REPORT_CONCEPT, REPORT_URL), childObs(LAB_RESULT_CONCEPT, REPORT_NAME),
@@ -118,64 +145,18 @@ public class DiagnosticReportObsLabResultTranslatorTest {
 	}
 	
 	@Test
-	public void shouldTranslateToLabReportNotesWhenItIsOnlyPresentInObs() {
+	public void givenObs_WhenLabReportLabResultAndLabNotesAreNotPresent_ShouldNotTranslateToLabReportUrlNotesAndTitle() {
 		Obs topLevelObs = new Obs();
 		Obs labObs = new Obs();
-		labObs.setGroupMembers(of(childObs(LAB_NOTES_CONCEPT, LAB_TEST_NOTES)).collect(toSet()));
+		labObs.setGroupMembers(of(childObs("AnotherConcept", "Dummy")).collect(toSet()));
 		topLevelObs.addGroupMember(labObs);
 		
 		LabResult labResult = diagnosticReportObsResultTranslatorHelper.toFhirResource(topLevelObs);
 		
-		assertEquals(LAB_TEST_NOTES, labResult.getLabReportNotes());
+		assertNull(labResult.getLabReportUrl());
+		assertNull(labResult.getLabReportFileName());
+		assertNull(labResult.getLabReportNotes());
 	}
-	
-	@Test
-    public void shouldTranslateToObsWhenTestReportIsUploadedWithLabNotesForPanelWithoutAnyOrder() {
-        Concept testConcept1 = new Concept();
-        Concept testConcept2 = new Concept();
-        Concept panel = new Concept();
-        List<ConceptSet> testsConcepts = new ArrayList<>();
-        testsConcepts.add(new ConceptSet(testConcept1, (double) 0));
-        testsConcepts.add(new ConceptSet(testConcept2, (double) 0));
-        panel.setConceptSets(testsConcepts);
-        LabResult labResult = LabResult.builder()
-                .labReportUrl(REPORT_URL)
-                .labReportFileName(REPORT_NAME)
-                .labReportNotes(LAB_TEST_NOTES)
-                .concept(panel)
-                .obsFactory(groupedObsFunction()).build();
-        mockConceptServiceGetConceptByName();
-
-
-        Obs obsModel = diagnosticReportObsResultTranslatorHelper.toOpenmrsType(labResult);
-
-        assertEquals(panel, obsModel.getConcept());
-        Set<Obs> obsGroupMembersTopLevel = obsModel.getGroupMembers();
-        assertEquals(2, obsGroupMembersTopLevel.size());
-
-        List<Obs> obsGroupMembersTopLevelList = new ArrayList<>();
-
-
-        for (int topLevelIndex = 0; topLevelIndex < obsGroupMembersTopLevelList.size(); topLevelIndex++) {
-            Obs obsModelSecondLevel = obsGroupMembersTopLevelList.get(topLevelIndex);
-
-            Set<Obs> obsGroupMembersSecondLevel = obsModelSecondLevel.getGroupMembers();
-            assertEquals(1, obsGroupMembersSecondLevel.size());
-
-            Obs obsModelThirdLevel = obsGroupMembersSecondLevel.iterator().next();
-            Set<Obs> obsGroupMembersThirdLevel = obsModelThirdLevel.getGroupMembers();
-            assertEquals(3, obsGroupMembersThirdLevel.size());
-
-            assertEquals(testsConcepts.get(topLevelIndex), obsModelThirdLevel.getConcept());
-
-            Obs reportObs = fetchObs(obsGroupMembersThirdLevel, "LAB_REPORT");
-            assertEquals(REPORT_URL, reportObs.getValueText());
-            Obs resultObs = fetchObs(obsGroupMembersThirdLevel, "LAB_RESULT");
-            assertEquals(REPORT_NAME, resultObs.getValueText());
-            Obs notesObs = fetchObs(obsGroupMembersThirdLevel, "LAB_NOTES");
-            assertEquals(LAB_TEST_NOTES, notesObs.getValueText());
-        }
-    }
 	
 	private BiFunction<Concept, String, Obs> groupedObsFunction() {
         return (concept, value) -> {

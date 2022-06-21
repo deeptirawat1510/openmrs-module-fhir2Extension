@@ -66,7 +66,7 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 	private final Date issuedDate = new Date();
 	
 	@Test
-	public void shouldTranslateDiagnosticReportToOpenMrsTypeToUpdateObsWithReportUrlAndNameWhenReportFileIsAttached() {
+	public void givenDiagnosticReport_WhenReportFileIsAttached_ShouldTranslateToOpenMrsTypeToUpdateObsWithReportUrlAndName() {
 		DiagnosticReport diagnosticReport = new DiagnosticReport();
 		Attachment attachment = new Attachment();
 		attachment.setUrl(REPORT_URL);
@@ -98,7 +98,7 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 	}
 	
 	@Test
-	public void shouldTranslateDiagnosticReportToOpenMrsTypeToUpdateObsWithReportUrlNameAndNotesWhenReportFileIsAttachedAndConclusionIsEntered() {
+	public void givenDiagnosticReport_WhenReportFileIsAttachedAndConclusionIsEntered_ShouldTranslateToOpenMrsTypeToUpdateObsWithReportUrlNameAndNotes() {
 		DiagnosticReport diagnosticReport = new DiagnosticReport();
 		Attachment attachment = new Attachment();
 		attachment.setUrl(REPORT_URL);
@@ -131,7 +131,7 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 	}
 	
 	@Test
-	public void shouldTranslateDiagnosticReportToOpenMrsTypeToNotUpdateObsWhenOnlyConclusionIsEntered() {
+	public void givenDiagnosticReport_WhenOnlyConclusionIsEntered_ShouldTranslateToOpenMrsTypeToNotUpdateObs() {
 		DiagnosticReport diagnosticReport = new DiagnosticReport();
 		diagnosticReport.setConclusion(LAB_TEST_NOTES);
 		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
@@ -145,7 +145,7 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 	}
 	
 	@Test
-	public void shouldTranslateFhirDiagnosticReportToFhirTypeToUpdatePresentedFormAndConclusionWhenItIsPresentInTheObs() {
+	public void givenFhirDiagnosticReport_WhenLabReportAndNotesObsArePresent_ShouldTranslatePresentedFormAndConclusionInFhirType() {
 		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
 		Obs obs = new Obs();
 		fhirDiagnosticReport.setResults(of(obs).collect(toSet()));
@@ -163,7 +163,7 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 	}
 	
 	@Test
-	public void shouldTranslateFhirDiagnosticReportToFhirTypeToNotUpdatePresentedFormWhenObsResultIsNotPresent() {
+	public void givenFhirDiagnosticReport_WhenObsAreNotPresent_ShouldNotTranslatePresentedFormAndConclusionInFhirType() {
 		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
 		DiagnosticReport diagnosticReport = new DiagnosticReport();
 		fhirDiagnosticReport.setResults(new HashSet<>());
@@ -177,7 +177,7 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 	}
 	
 	@Test
-	public void shouldTranslateFhirDiagnosticReportToFhirTypeToNotUpdatePresentedFormWhenLabReportIsNotPresentInObsResult() {
+	public void givenFhirDiagnosticReport_WhenOnlyNotesObsArePresent_ShouldNotTranslatePresentedFormAndConclusionInFhirType() {
 		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
 		Obs obs = new Obs();
 		fhirDiagnosticReport.setResults(of(obs).collect(toSet()));
