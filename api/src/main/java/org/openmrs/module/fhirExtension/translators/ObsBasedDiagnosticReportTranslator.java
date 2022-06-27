@@ -8,5 +8,4 @@ import org.openmrs.module.fhirExtension.domain.observation.LabResult;
 
 import java.util.Set;
 
-public interface DiagnosticReportObsTranslator extends OpenmrsFhirTranslator<FhirDiagnosticReport, DiagnosticReport> {
-}
+public interface ObsBasedDiagnosticReportTranslator extends OpenmrsFhirTranslator<FhirDiagnosticReport, DiagnosticReport> {}

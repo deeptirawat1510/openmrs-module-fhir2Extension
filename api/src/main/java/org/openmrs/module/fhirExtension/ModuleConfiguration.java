@@ -10,5 +10,5 @@ public class ModuleConfiguration {
 	
 	@Autowired
 	@Qualifier("adminService")
-	AdministrationService administrationService;
+	private AdministrationService administrationService;
 }

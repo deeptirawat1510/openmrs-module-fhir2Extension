@@ -41,7 +41,6 @@
 	</privilege>
 	 /Required Privileges -->
 
-
 	<!-- Required Global Properties 
 	<globalProperty>
 		<property>@MODULE_ID@.someProperty</property>
@@ -90,4 +89,3 @@
 	<!-- /Internationalization -->
 	
 </module>
-
