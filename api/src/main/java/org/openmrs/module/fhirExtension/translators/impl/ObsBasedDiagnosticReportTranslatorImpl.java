@@ -5,6 +5,7 @@ import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.openmrs.Concept;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
 import org.openmrs.api.APIException;
 import org.openmrs.module.fhir2.api.translators.DiagnosticReportTranslator;
 import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
@@ -16,8 +17,10 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 import java.text.ParseException;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -36,6 +39,7 @@ public class ObsBasedDiagnosticReportTranslatorImpl implements ObsBasedDiagnosti
 	public DiagnosticReport toFhirResource(@Nonnull FhirDiagnosticReport fhirDiagnosticReport) {
 		DiagnosticReport diagnosticReport = diagnosticReportTranslator.toFhirResource(fhirDiagnosticReport);
 		setPresentedForm(diagnosticReport, fhirDiagnosticReport);
+		setPerformer(diagnosticReport, fhirDiagnosticReport);
 		return diagnosticReport;
 	}
 	
@@ -76,6 +80,18 @@ public class ObsBasedDiagnosticReportTranslatorImpl implements ObsBasedDiagnosti
 				diagnosticReport.addPresentedForm(attachment);
 			}
 			diagnosticReport.setConclusion(labResult.getLabReportNotes());
+		}
+	}
+	
+	private void setPerformer(DiagnosticReport diagnosticReport, FhirDiagnosticReport fhirDiagnosticReport) {
+		if (diagnosticReport.getPerformer().size() > 0) {
+			String reference = diagnosticReport.getPerformer().get(0).getReference();
+			String providerUuid = reference.split("/")[1];
+			Provider doctorProvider = new Provider();
+			doctorProvider.setUuid(providerUuid);
+			Set<Provider> performers = new HashSet();
+			performers.add(doctorProvider);
+			fhirDiagnosticReport.setPerformers(performers);
 		}
 	}
 	
