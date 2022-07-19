@@ -2,6 +2,7 @@ package org.openmrs.module.fhirExtension.translators;
 
 import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.DiagnosticReport;
+import org.hl7.fhir.r4.model.Reference;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -11,9 +12,10 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
-import org.openmrs.ConceptName;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
+import org.openmrs.api.ProviderService;
 import org.openmrs.module.fhir2.api.translators.DiagnosticReportTranslator;
 import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
 import org.openmrs.module.fhirExtension.domain.observation.LabResult;
@@ -23,11 +25,9 @@ import org.openmrs.module.fhirExtension.translators.impl.ObsBasedDiagnosticRepor
 import java.util.Date;
 import java.util.HashSet;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static java.util.Locale.ENGLISH;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Stream.of;
 import static org.junit.Assert.assertEquals;
@@ -35,7 +35,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,6 +53,9 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 	
 	@Mock
 	private DiagnosticReportObsLabResultTranslatorImpl diagnosticReportObsLabResultTranslator;
+	
+	@Mock
+	private ProviderService providerService;
 	
 	@InjectMocks
 	private final ObsBasedDiagnosticReportTranslator translator = new ObsBasedDiagnosticReportTranslatorImpl();
@@ -190,6 +192,51 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 		
 		assertEquals(diagnosticReport, result);
 		assertFalse(diagnosticReport.hasPresentedForm());
+	}
+	
+	@Test
+	public void givenFhirDiagnosticReport_WhenPerformerPresent_ShouldTranslatePerformerInFhirType() {
+		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
+		Provider provider = new Provider();
+		provider.setUuid("123");
+		provider.setName("Test");
+		fhirDiagnosticReport.setPerformers(singleton(provider));
+		DiagnosticReport diagnosticReport = new DiagnosticReport();
+		when(diagnosticReportTranslator.toFhirResource(fhirDiagnosticReport)).thenReturn(diagnosticReport);
+		
+		DiagnosticReport result = translator.toFhirResource(fhirDiagnosticReport);
+		
+		assertTrue(result.hasPerformer());
+	}
+	
+	@Test
+	public void givenDiagnosticReport_WhenReportFileIsAttached_ShouldTranslateToOpenMrsTypeToUpdateObsWithPerformerDetails() {
+		DiagnosticReport diagnosticReport = new DiagnosticReport();
+		Reference reference = new Reference("Practitioner");
+		reference.setReference("Practitioner/123");
+		Attachment attachment = new Attachment();
+		attachment.setUrl(REPORT_URL);
+		attachment.setTitle(REPORT_NAME);
+		diagnosticReport.setPresentedForm(singletonList(attachment));
+		diagnosticReport.setPerformer(singletonList(reference));
+		
+		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
+		fhirDiagnosticReport.setSubject(patient);
+		fhirDiagnosticReport.setIssued(issuedDate);
+		
+		Provider provider = new Provider();
+		provider.setUuid("123");
+		provider.setName("Test");
+		fhirDiagnosticReport.setPerformers(singleton(provider));
+		when(diagnosticReportTranslator.toOpenmrsType(diagnosticReport)).thenReturn(fhirDiagnosticReport);
+		Obs obs = new Obs();
+		when(diagnosticReportObsLabResultTranslator.toOpenmrsType(any(LabResult.class))).thenReturn(obs);
+		when(providerService.getProviderByUuid("123")).thenReturn(provider);
+		
+		FhirDiagnosticReport result = translator.toOpenmrsType(diagnosticReport);
+		
+		assertEquals(1, result.getPerformers().size());
+		assertEquals(provider.getName(), result.getPerformers().iterator().next().getName());
 	}
 	
 	private Concept newConcept() {
