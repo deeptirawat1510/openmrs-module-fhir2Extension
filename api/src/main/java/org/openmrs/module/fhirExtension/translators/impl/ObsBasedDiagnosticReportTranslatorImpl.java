@@ -2,15 +2,14 @@ package org.openmrs.module.fhirExtension.translators.impl;
 
 import org.hl7.fhir.r4.model.Attachment;
 import org.hl7.fhir.r4.model.DiagnosticReport;
-import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Reference;
 import org.openmrs.Concept;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
 import org.openmrs.api.APIException;
-import org.openmrs.api.ProviderService;
 import org.openmrs.module.fhir2.api.translators.DiagnosticReportTranslator;
+import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
 import org.openmrs.module.fhirExtension.domain.observation.LabResult;
 import org.openmrs.module.fhirExtension.translators.ObsBasedDiagnosticReportTranslator;
@@ -39,9 +38,7 @@ public class ObsBasedDiagnosticReportTranslatorImpl implements ObsBasedDiagnosti
 	private DiagnosticReportObsLabResultTranslatorImpl diagnosticReportObsLabResultTranslator;
 	
 	@Autowired
-	private ProviderService providerService;
-	
-	static final String PRACTITIONER = "Practitioner";
+	private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
 	
 	@Override
 	public DiagnosticReport toFhirResource(@Nonnull FhirDiagnosticReport fhirDiagnosticReport) {
@@ -96,18 +93,15 @@ public class ObsBasedDiagnosticReportTranslatorImpl implements ObsBasedDiagnosti
 		Set<Provider> performers = fhirDiagnosticReport.getPerformers();
 		if (!performers.isEmpty()) {
 			Provider doctorProvider = performers.iterator().next();
-			Reference reference = new Reference(PRACTITIONER);
-			reference.setDisplay(doctorProvider.getName());
+			Reference reference = practitionerReferenceTranslator.toFhirResource(doctorProvider);
 			diagnosticReport.setPerformer(Collections.singletonList(reference));
 		}
 	}
 	
 	private void setPerformer(DiagnosticReport diagnosticReport, FhirDiagnosticReport fhirDiagnosticReport) {
 		if (!diagnosticReport.getPerformer().isEmpty()) {
-			String reference = diagnosticReport.getPerformer().get(0).getReference();
-			String providerUuid = reference.split("/")[1];
-			Provider doctorProvider = providerService.getProviderByUuid(providerUuid);
-			fhirDiagnosticReport.setPerformers(Collections.singleton(doctorProvider));
+			Provider provider = practitionerReferenceTranslator.toOpenmrsType(diagnosticReport.getPerformer().get(0));
+			fhirDiagnosticReport.setPerformers(Collections.singleton(provider));
 		}
 	}
 	

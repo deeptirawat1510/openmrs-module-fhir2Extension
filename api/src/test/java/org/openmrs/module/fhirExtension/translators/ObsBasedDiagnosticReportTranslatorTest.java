@@ -17,6 +17,7 @@ import org.openmrs.Patient;
 import org.openmrs.Provider;
 import org.openmrs.api.ProviderService;
 import org.openmrs.module.fhir2.api.translators.DiagnosticReportTranslator;
+import org.openmrs.module.fhir2.api.translators.PractitionerReferenceTranslator;
 import org.openmrs.module.fhir2.model.FhirDiagnosticReport;
 import org.openmrs.module.fhirExtension.domain.observation.LabResult;
 import org.openmrs.module.fhirExtension.translators.impl.DiagnosticReportObsLabResultTranslatorImpl;
@@ -56,6 +57,9 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 	
 	@Mock
 	private ProviderService providerService;
+	
+	@Mock
+	private PractitionerReferenceTranslator<Provider> practitionerReferenceTranslator;
 	
 	@InjectMocks
 	private final ObsBasedDiagnosticReportTranslator translator = new ObsBasedDiagnosticReportTranslatorImpl();
@@ -198,15 +202,20 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 	public void givenFhirDiagnosticReport_WhenPerformerPresent_ShouldTranslatePerformerInFhirType() {
 		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
 		Provider provider = new Provider();
+		Reference reference = new Reference("Practitioner");
+		reference.setReference("Practitioner/123");
 		provider.setUuid("123");
 		provider.setName("Test");
+		provider.setIdentifier("abc");
 		fhirDiagnosticReport.setPerformers(singleton(provider));
 		DiagnosticReport diagnosticReport = new DiagnosticReport();
 		when(diagnosticReportTranslator.toFhirResource(fhirDiagnosticReport)).thenReturn(diagnosticReport);
+		when(practitionerReferenceTranslator.toFhirResource(provider)).thenReturn(reference);
 		
 		DiagnosticReport result = translator.toFhirResource(fhirDiagnosticReport);
 		
 		assertTrue(result.hasPerformer());
+		assertEquals("Practitioner/123", result.getPerformer().get(0).getReference());
 	}
 	
 	@Test
@@ -232,11 +241,12 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 		Obs obs = new Obs();
 		when(diagnosticReportObsLabResultTranslator.toOpenmrsType(any(LabResult.class))).thenReturn(obs);
 		when(providerService.getProviderByUuid("123")).thenReturn(provider);
+		when(practitionerReferenceTranslator.toOpenmrsType(reference)).thenReturn(provider);
 		
 		FhirDiagnosticReport result = translator.toOpenmrsType(diagnosticReport);
 		
 		assertEquals(1, result.getPerformers().size());
-		assertEquals(provider.getName(), result.getPerformers().iterator().next().getName());
+		assertEquals(provider.getUuid(), result.getPerformers().iterator().next().getUuid());
 	}
 	
 	private Concept newConcept() {
