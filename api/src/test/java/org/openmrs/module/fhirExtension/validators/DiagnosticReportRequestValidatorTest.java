@@ -38,22 +38,22 @@ public class DiagnosticReportRequestValidatorTest {
 	public ExpectedException thrown = ExpectedException.none();
 	
 	@Test(expected = UnprocessableEntityException.class)
-    public void shouldThrowExceptionWhenPendingLabOrderIsInvalid(){
-		DiagnosticReport diagnosticReportToCreate = new DiagnosticReport();
-		Reference reference = new Reference("ServiceRequest");
-		reference.setDisplay("Platelet Count");
-		List<Reference> basedOn = Collections.singletonList(reference);
-		diagnosticReportToCreate.setBasedOn(basedOn);
+    public void shouldThrowExceptionWhenPendingLabOrderIsInvalid() {
+        DiagnosticReport diagnosticReportToCreate = new DiagnosticReport();
+        Reference reference = new Reference("ServiceRequest");
+        reference.setDisplay("Platelet Count");
+        List<Reference> basedOn = Collections.singletonList(reference);
+        diagnosticReportToCreate.setBasedOn(basedOn);
 
-		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
-		fhirDiagnosticReport.setResults(new HashSet<>(asList(new Obs(), new Obs())));
-		fhirDiagnosticReport.setStatus(FhirDiagnosticReport.DiagnosticReportStatus.FINAL);
+        FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
+        fhirDiagnosticReport.setResults(new HashSet<>(asList(new Obs(), new Obs())));
+        fhirDiagnosticReport.setStatus(FhirDiagnosticReport.DiagnosticReportStatus.FINAL);
         fhirDiagnosticReport.setCode(new Concept());
         fhirDiagnosticReport.setSubject(new Patient());
         fhirDiagnosticReport.setResults(new HashSet<>(singletonList(new Obs())));
 
-		when(orderService.getAllOrdersByPatient(any())).thenReturn(Collections.emptyList());
+        when(orderService.getOrderByUuid(any())).thenReturn(null);
 
-		diagnosticReportRequestValidator.validate(fhirDiagnosticReport);
+        diagnosticReportRequestValidator.validate(diagnosticReportToCreate);
     }
 }
