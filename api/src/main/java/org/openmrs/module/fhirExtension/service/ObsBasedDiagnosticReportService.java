@@ -9,7 +9,10 @@ import ca.uhn.fhir.rest.param.TokenAndListParam;
 import lombok.extern.log4j.Log4j2;
 import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.openmrs.Obs;
+import org.openmrs.Order;
+import org.openmrs.Patient;
 import org.openmrs.api.ObsService;
+import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.FhirDiagnosticReportService;
 import org.openmrs.module.fhir2.api.dao.FhirDao;
@@ -30,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nonnull;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -57,7 +62,7 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 	private DiagnosticReportRequestValidator diagnosticReportRequestValidator;
 	
 	@Autowired
-	private OrderUpdateService orderUpdateService;
+	private OrderService orderService;
 	
 	@Autowired
 	private SearchQuery<FhirDiagnosticReport, DiagnosticReport, FhirDiagnosticReportDao, ObsBasedDiagnosticReportTranslator, SearchQueryInclude<DiagnosticReport>> searchQuery;
@@ -68,19 +73,33 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 	@Override
 	public DiagnosticReport create(@Nonnull DiagnosticReport diagnosticReport) {
 		try {
+			diagnosticReportRequestValidator.validate(diagnosticReport);
 			FhirDiagnosticReport fhirDiagnosticReport = obsBasedDiagnosticReportTranslator.toOpenmrsType(diagnosticReport);
 			diagnosticReportObsValidator.validate(fhirDiagnosticReport);
-			diagnosticReportRequestValidator.validate(diagnosticReport);
-			Set<Obs> createdObs = createObs(fhirDiagnosticReport.getResults());
-			fhirDiagnosticReport.setResults(createdObs);
+			
+			Order order = getOrder(diagnosticReport, fhirDiagnosticReport);
+			Set<Obs> reportObs = createReportObs(fhirDiagnosticReport, order);
+			
+			fhirDiagnosticReport.setResults(reportObs);
+			
 			FhirDiagnosticReport createdFhirDiagnosticReport = fhirDiagnosticReportDao.createOrUpdate(fhirDiagnosticReport);
-			orderUpdateService.updateOrder(diagnosticReport, fhirDiagnosticReport);
+			updateFulFillerStatus(order);
 			return obsBasedDiagnosticReportTranslator.toFhirResource(createdFhirDiagnosticReport);
 		}
 		catch (Exception exception) {
 			log.error("Exception while saving diagnostic report: " + exception.getMessage());
 			throw exception;
 		}
+	}
+	
+	private Set<Obs> createReportObs(FhirDiagnosticReport fhirDiagnosticReport, Order order) {
+		String SAVE_OBS_MESSAGE = "Created when saving a Fhir Diagnostic Report";
+
+		Set<Obs> diagnosticObs = fhirDiagnosticReport.getResults();
+		updateObsWithOrder(diagnosticObs, order);
+		return diagnosticObs.stream()
+				.map(obs -> obsService.saveObs(obs, SAVE_OBS_MESSAGE))
+				.collect(Collectors.toSet());
 	}
 	
 	@Override
@@ -111,9 +130,34 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 		    searchQueryInclude);
 	}
 	
-	private Set<Obs> createObs(Set<Obs> results) {
-		return results.stream()
-				.map(obs -> obsService.saveObs(obs, SAVE_OBS_MESSAGE))
-				.collect(Collectors.toSet());
+	private Order getOrder(DiagnosticReport diagnosticReport, FhirDiagnosticReport fhirDiagnosticReport) {
+		if (!diagnosticReport.getBasedOn().isEmpty()) {
+			String orderUuid = diagnosticReport.getBasedOn().get(0).getIdentifier().getValue();
+			return orderService.getOrderByUuid(orderUuid);
+		} else {
+			Patient patient = fhirDiagnosticReport.getSubject();
+			Integer conceptId = fhirDiagnosticReport.getCode().getId();
+			List<Order> allOrders = orderService.getAllOrdersByPatient(patient);
+			Optional<Order> order = allOrders.stream()
+					.filter(o -> !Order.FulfillerStatus.COMPLETED.equals(o.getFulfillerStatus()))
+					.filter(o -> !o.getVoided())
+					.filter(o -> o.getConcept().getId().equals(conceptId))
+					.findFirst();
+			return order.orElse(null);
+		}
+	}
+	
+	private void updateFulFillerStatus(Order order) {
+		if (order != null)
+			order.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
+	}
+	
+	private void updateObsWithOrder(Set<Obs> diagnosticObs, Order order) {
+		diagnosticObs.forEach(obs -> {
+			obs.setOrder(order);
+			if (obs.hasGroupMembers()) {
+				updateObsWithOrder(obs.getGroupMembers(), order);
+			}
+		});
 	}
 }
