@@ -11,6 +11,8 @@ import org.hl7.fhir.r4.model.DiagnosticReport;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.OrderType;
+import org.openmrs.CareSetting;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.FhirConstants;
@@ -45,6 +47,8 @@ import java.util.stream.Collectors;
 public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticReport, FhirDiagnosticReport> implements FhirDiagnosticReportService {
 	
 	static final String SAVE_OBS_MESSAGE = "Created when saving a Fhir Diagnostic Report";
+	
+	static final String ORDER_TYPE_NAME = "Lab Order";
 	
 	@Autowired
 	private FhirDiagnosticReportDao fhirDiagnosticReportDao;
@@ -131,16 +135,19 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 	}
 	
 	private Order getOrder(DiagnosticReport diagnosticReport, FhirDiagnosticReport fhirDiagnosticReport) {
+
 		if (!diagnosticReport.getBasedOn().isEmpty()) {
 			String orderUuid = diagnosticReport.getBasedOn().get(0).getIdentifier().getValue();
 			return orderService.getOrderByUuid(orderUuid);
 		} else {
+			String careSettingTypeName = CareSetting.CareSettingType.OUTPATIENT.toString();
+			CareSetting careSetting = orderService.getCareSettingByName(careSettingTypeName);
+			OrderType orderType = orderService.getOrderTypeByName(ORDER_TYPE_NAME);
 			Patient patient = fhirDiagnosticReport.getSubject();
 			Integer conceptId = fhirDiagnosticReport.getCode().getId();
-			List<Order> allOrders = orderService.getAllOrdersByPatient(patient);
+			List<Order> allOrders = orderService.getOrders(patient, careSetting, orderType, false);
 			Optional<Order> order = allOrders.stream()
 					.filter(o -> !Order.FulfillerStatus.COMPLETED.equals(o.getFulfillerStatus()))
-					.filter(o -> !o.getVoided())
 					.filter(o -> o.getConcept().getId().equals(conceptId))
 					.findFirst();
 			return order.orElse(null);
