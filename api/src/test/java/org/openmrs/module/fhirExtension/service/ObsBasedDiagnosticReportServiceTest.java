@@ -14,6 +14,8 @@ import org.openmrs.Concept;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.CareSetting;
+import org.openmrs.OrderType;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.OrderService;
 import org.openmrs.module.fhir2.FhirConstants;
@@ -64,11 +66,11 @@ public class ObsBasedDiagnosticReportServiceTest {
 	
 	@InjectMocks
 	private DiagnosticReportRequestValidator diagnosticReportRequestValidator = Mockito
-	        .spy(new DiagnosticReportRequestValidator());;
+	        .spy(new DiagnosticReportRequestValidator());
 
 	@InjectMocks
 	private DiagnosticReportObsValidator diagnosticReportObsValidator = Mockito
-			.spy(new DiagnosticReportObsValidator());;
+			.spy(new DiagnosticReportObsValidator());
 	
 	@Mock
 	private ObsService obsService;
@@ -116,11 +118,15 @@ public class ObsBasedDiagnosticReportServiceTest {
 		Order order2 = new Order();
 		order2.setUuid("should_not_be_picked");
 		order2.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
-		
+		CareSetting careSetting = new CareSetting();
+		OrderType orderType = new OrderType(1);
+		String careSettingName = CareSetting.CareSettingType.OUTPATIENT.toString();
+
 		DiagnosticReport mockDiagnosticReport = new DiagnosticReport();
 		FhirDiagnosticReport updatedFhirDiagnosticReport = new FhirDiagnosticReport();
-		
-		when(orderService.getAllOrdersByPatient(patient)).thenReturn(Arrays.asList(order1, order2));
+		when(orderService.getCareSettingByName(careSettingName)).thenReturn(careSetting);
+		when(orderService.getOrderTypeByName("Lab Order")).thenReturn(orderType);
+		when(orderService.getOrders(patient, careSetting, orderType, false)).thenReturn(Arrays.asList(order1, order2));
 		when(translator.toOpenmrsType(diagnosticReportToCreate)).thenReturn(fhirDiagnosticReport);
 		doNothing().when(diagnosticReportObsValidator).validate(fhirDiagnosticReport);
 		when(dao.createOrUpdate(fhirDiagnosticReport)).thenReturn(updatedFhirDiagnosticReport);
@@ -131,7 +137,7 @@ public class ObsBasedDiagnosticReportServiceTest {
 		verify(obsService, times(1)).saveObs(any(Obs.class), eq(SAVE_OBS_MESSAGE));
 		
 		assertEquals(mockDiagnosticReport, actualDiagnosticReport);
-		verify(orderService, times(1)).getAllOrdersByPatient(patient);
+		verify(orderService, times(1)).getOrders(patient, careSetting, orderType, false);
 		
 		assertNotNull(reportObs.getOrder());
 		assertNotNull(resultObs.getOrder());
