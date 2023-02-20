@@ -67,10 +67,9 @@ public class ObsBasedDiagnosticReportServiceTest {
 	@InjectMocks
 	private DiagnosticReportRequestValidator diagnosticReportRequestValidator = Mockito
 	        .spy(new DiagnosticReportRequestValidator());
-
+	
 	@InjectMocks
-	private DiagnosticReportObsValidator diagnosticReportObsValidator = Mockito
-			.spy(new DiagnosticReportObsValidator());
+	private DiagnosticReportObsValidator diagnosticReportObsValidator = Mockito.spy(new DiagnosticReportObsValidator());
 	
 	@Mock
 	private ObsService obsService;
@@ -121,7 +120,7 @@ public class ObsBasedDiagnosticReportServiceTest {
 		CareSetting careSetting = new CareSetting();
 		OrderType orderType = new OrderType(1);
 		String careSettingName = CareSetting.CareSettingType.OUTPATIENT.toString();
-
+		
 		DiagnosticReport mockDiagnosticReport = new DiagnosticReport();
 		FhirDiagnosticReport updatedFhirDiagnosticReport = new FhirDiagnosticReport();
 		when(orderService.getCareSettingByName(careSettingName)).thenReturn(careSetting);
@@ -145,7 +144,7 @@ public class ObsBasedDiagnosticReportServiceTest {
 		
 		assertEquals(order1.getFulfillerStatus(), Order.FulfillerStatus.COMPLETED);
 	}
-
+	
 	@Test
 	public void shouldCreateDiagnosticReportWithObsBasedonOpenOrder_and_UpdateOrderStatusToCOMPLETED() {
 		DiagnosticReport diagnosticReportToCreate = new DiagnosticReport();
@@ -155,10 +154,10 @@ public class ObsBasedDiagnosticReportServiceTest {
 		CodeableConcept conceptFromTheRequest = new CodeableConcept();
 		conceptFromTheRequest.setCoding(Collections.singletonList(new Coding("HL7", orderUuid, "Test1")));
 		diagnosticReportToCreate.setCode(conceptFromTheRequest);
-
+		
 		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
 		fhirDiagnosticReport.setResults(of(new Obs(), new Obs()).collect(toSet()));
-
+		
 		Patient patient = new Patient(123);
 		Concept concept = new Concept(12);
 		concept.setUuid(orderUuid);
@@ -170,23 +169,23 @@ public class ObsBasedDiagnosticReportServiceTest {
 		Order order2 = new Order();
 		order2.setUuid("should_not_be_picked");
 		order2.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
-
+		
 		DiagnosticReport mockDiagnosticReport = new DiagnosticReport();
 		FhirDiagnosticReport updatedFhirDiagnosticReport = new FhirDiagnosticReport();
-
+		
 		when(orderService.getOrderByUuid(any())).thenReturn(order1);
 		when(translator.toOpenmrsType(diagnosticReportToCreate)).thenReturn(fhirDiagnosticReport);
 		doNothing().when(diagnosticReportObsValidator).validate(fhirDiagnosticReport);
 		when(dao.createOrUpdate(fhirDiagnosticReport)).thenReturn(updatedFhirDiagnosticReport);
 		when(translator.toFhirResource(updatedFhirDiagnosticReport)).thenReturn(mockDiagnosticReport);
-
+		
 		DiagnosticReport actualDiagnosticReport = obsBasedDiagnosticReportService.create(diagnosticReportToCreate);
-
+		
 		verify(obsService, times(2)).saveObs(any(Obs.class), eq(SAVE_OBS_MESSAGE));
-
+		
 		assertEquals(mockDiagnosticReport, actualDiagnosticReport);
 		verify(orderService, times(2)).getOrderByUuid(orderUuid);
-
+		
 		assertEquals(order1.getFulfillerStatus(), Order.FulfillerStatus.COMPLETED);
 	}
 	
@@ -213,38 +212,38 @@ public class ObsBasedDiagnosticReportServiceTest {
 		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
 		// Setting only Results out of Status, Code, Subject and results
 		fhirDiagnosticReport.setResults(Collections.singleton(new Obs()));
-
+		
 		doNothing().when(diagnosticReportRequestValidator).validate(diagnosticReportToCreate);
 		when(translator.toOpenmrsType(diagnosticReportToCreate)).thenReturn(fhirDiagnosticReport);
-
+		
 		obsBasedDiagnosticReportService.create(diagnosticReportToCreate);
-
+		
 		verify(obsService, times(0)).saveObs(any(Obs.class), eq(SAVE_OBS_MESSAGE));
 		verify(dao, times(0)).createOrUpdate(any(FhirDiagnosticReport.class));
 	}
 	
 	@Test(expected = UnprocessableEntityException.class)
-    public void shouldThrowUnprocessableEntityException_givenDiagnosticReportRequestWithCompletedOrder() {
-        DiagnosticReport diagnosticReportToCreate = new DiagnosticReport();
-        FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
-        fhirDiagnosticReport.setResults(Collections.singleton(new Obs()));
+	public void shouldThrowUnprocessableEntityException_givenDiagnosticReportRequestWithCompletedOrder() {
+		DiagnosticReport diagnosticReportToCreate = new DiagnosticReport();
+		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
+		fhirDiagnosticReport.setResults(Collections.singleton(new Obs()));
 		List<Reference> basedOn = mockBasedOn();
 		diagnosticReportToCreate.setBasedOn(basedOn);
-
+		
 		Order completedPendingOrder = new Order();
 		completedPendingOrder.setUuid("uuid1");
 		completedPendingOrder.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
-
-        when(translator.toOpenmrsType(diagnosticReportToCreate)).thenReturn(fhirDiagnosticReport);
-        doNothing().when(diagnosticReportObsValidator).validate(fhirDiagnosticReport);
+		
+		when(translator.toOpenmrsType(diagnosticReportToCreate)).thenReturn(fhirDiagnosticReport);
+		doNothing().when(diagnosticReportObsValidator).validate(fhirDiagnosticReport);
 		when(orderService.getOrderByUuid(any())).thenReturn(completedPendingOrder);
-
-        obsBasedDiagnosticReportService.create(diagnosticReportToCreate);
-
+		
+		obsBasedDiagnosticReportService.create(diagnosticReportToCreate);
+		
 		verify(obsService, times(0)).saveObs(any(Obs.class), eq(SAVE_OBS_MESSAGE));
-        verify(dao, times(0)).createOrUpdate(any(FhirDiagnosticReport.class));
-    }
-
+		verify(dao, times(0)).createOrUpdate(any(FhirDiagnosticReport.class));
+	}
+	
 	@Test(expected = UnprocessableEntityException.class)
 	public void shouldThrowUnprocessableEntityException_givenDiagnosticReportRequestWithVoidedOrder() {
 		DiagnosticReport diagnosticReportToCreate = new DiagnosticReport();
@@ -266,7 +265,7 @@ public class ObsBasedDiagnosticReportServiceTest {
 		verify(obsService, times(0)).saveObs(any(Obs.class), eq(SAVE_OBS_MESSAGE));
 		verify(dao, times(0)).createOrUpdate(any(FhirDiagnosticReport.class));
 	}
-
+	
 	@Test(expected = UnprocessableEntityException.class)
 	public void shouldThrowUnprocessableEntityException_givenDiagnosticReportRequestWithNonMatchingOrder() {
 		DiagnosticReport diagnosticReportToCreate = new DiagnosticReport();
@@ -294,7 +293,7 @@ public class ObsBasedDiagnosticReportServiceTest {
 		verify(obsService, times(0)).saveObs(any(Obs.class), eq(SAVE_OBS_MESSAGE));
 		verify(dao, times(0)).createOrUpdate(any(FhirDiagnosticReport.class));
 	}
-
+	
 	@Test
 	public void shouldCallQueryResultsWithProperParameters_whenSearchNeedsToBePerformedForPatient() {
 		ReferenceAndListParam patientReference = new ReferenceAndListParam();
@@ -316,11 +315,11 @@ public class ObsBasedDiagnosticReportServiceTest {
 		assertEquals(translator, translatorArgumentCaptor.getValue());
 		assertEquals(searchQueryInclude, searchQueryIncludeArgumentCaptor.getValue());
 	}
-
+	
 	private List<Reference> mockBasedOn() {
 		return mockBasedOn("order-uuid");
 	}
-
+	
 	private List<Reference> mockBasedOn(String orderUuid) {
 		Reference reference = new Reference("ServiceRequest");
 		reference.setDisplay("Platelet Count");

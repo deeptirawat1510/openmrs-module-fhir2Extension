@@ -16,6 +16,7 @@ package org.openmrs.module.fhirExtension;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.BaseModuleActivator;
+import org.openmrs.module.ModuleActivator;
 
 /**
  * This class contains the logic that is run every time this module is either started or shutdown
@@ -25,16 +26,16 @@ public class FhirExtensionModuleActivator extends BaseModuleActivator {
 	private Log log = LogFactory.getLog(this.getClass());
 	
 	/**
-	 * @see org.openmrs.module.Activator#startup()
+	 * @see ModuleActivator#willStart()
 	 */
-	public void startup() {
+	public void willStart() {
 		log.info("Starting Basic Module");
 	}
 	
 	/**
-	 * @see org.openmrs.module.Activator#shutdown()
+	 * @see ModuleActivator#willStop()
 	 */
-	public void shutdown() {
+	public void willStop() {
 		log.info("Shutting down Basic Module");
 	}
 	
