@@ -87,5 +87,11 @@
 		<file>messages_es.properties</file>
 	</messages>
 	<!-- /Internationalization -->
+
+	<globalProperty>
+		<property>labEntry.visitType</property>
+		<defaultValue>LAB_VISIT</defaultValue>
+		<description>Visit type for lab results upload. Will be considered if there is no active visit for the patient</description>
+	</globalProperty>
 	
 </module>

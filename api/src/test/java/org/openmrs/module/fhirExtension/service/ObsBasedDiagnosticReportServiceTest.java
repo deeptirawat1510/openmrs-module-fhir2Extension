@@ -10,14 +10,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.openmrs.Concept;
-import org.openmrs.Obs;
-import org.openmrs.Order;
+import org.openmrs.*;
+import org.openmrs.Location;
 import org.openmrs.Patient;
-import org.openmrs.CareSetting;
-import org.openmrs.OrderType;
+import org.openmrs.Person;
+import org.openmrs.api.AdministrationService;
+import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.OrderService;
+import org.openmrs.api.ProviderService;
+import org.openmrs.api.VisitService;
+import org.openmrs.api.context.Context;
+import org.openmrs.api.context.UserContext;
 import org.openmrs.module.fhir2.FhirConstants;
 import org.openmrs.module.fhir2.api.dao.FhirDiagnosticReportDao;
 import org.openmrs.module.fhir2.api.search.SearchQuery;
@@ -28,8 +32,16 @@ import org.openmrs.module.fhirExtension.translators.ObsBasedDiagnosticReportTran
 import org.openmrs.module.fhirExtension.validators.DiagnosticReportObsValidator;
 import org.openmrs.module.fhirExtension.validators.DiagnosticReportRequestValidator;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -83,6 +95,18 @@ public class ObsBasedDiagnosticReportServiceTest {
 	@Mock
 	private SearchQueryInclude<DiagnosticReport> searchQueryInclude;
 	
+	@Mock
+	private EncounterService encounterService;
+	
+	@Mock
+	private VisitService visitService;
+	
+	@Mock
+	private ProviderService providerService;
+	
+	@Mock
+	private AdministrationService adminService;
+	
 	@InjectMocks
 	private final ObsBasedDiagnosticReportService obsBasedDiagnosticReportService = new ObsBasedDiagnosticReportService();
 	
@@ -121,6 +145,13 @@ public class ObsBasedDiagnosticReportServiceTest {
 		OrderType orderType = new OrderType(1);
 		String careSettingName = CareSetting.CareSettingType.OUTPATIENT.toString();
 		
+		User authenticatedUser = new User();
+		authenticatedUser.setPerson(new Person());
+		UserContext mockUserContext = mock(UserContext.class);
+		when(mockUserContext.getAuthenticatedUser()).thenReturn(authenticatedUser);
+		when(mockUserContext.getLocation()).thenReturn(new Location());
+		Context.setUserContext(mockUserContext);
+		
 		DiagnosticReport mockDiagnosticReport = new DiagnosticReport();
 		FhirDiagnosticReport updatedFhirDiagnosticReport = new FhirDiagnosticReport();
 		when(orderService.getCareSettingByName(careSettingName)).thenReturn(careSetting);
@@ -131,6 +162,8 @@ public class ObsBasedDiagnosticReportServiceTest {
 		when(dao.createOrUpdate(fhirDiagnosticReport)).thenReturn(updatedFhirDiagnosticReport);
 		when(translator.toFhirResource(updatedFhirDiagnosticReport)).thenReturn(mockDiagnosticReport);
 		
+		when(encounterService.getEncounterType("LAB_RESULT")).thenReturn(new EncounterType());
+		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(Collections.singletonList(new Visit()));
 		DiagnosticReport actualDiagnosticReport = obsBasedDiagnosticReportService.create(diagnosticReportToCreate);
 		
 		verify(obsService, times(1)).saveObs(any(Obs.class), eq(SAVE_OBS_MESSAGE));
@@ -179,6 +212,14 @@ public class ObsBasedDiagnosticReportServiceTest {
 		when(dao.createOrUpdate(fhirDiagnosticReport)).thenReturn(updatedFhirDiagnosticReport);
 		when(translator.toFhirResource(updatedFhirDiagnosticReport)).thenReturn(mockDiagnosticReport);
 		
+		User authenticatedUser = new User();
+		authenticatedUser.setPerson(new Person());
+		UserContext mockUserContext = mock(UserContext.class);
+		when(mockUserContext.getAuthenticatedUser()).thenReturn(authenticatedUser);
+		when(mockUserContext.getLocation()).thenReturn(new Location());
+		Context.setUserContext(mockUserContext);
+		when(encounterService.getEncounterType("LAB_RESULT")).thenReturn(new EncounterType());
+		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(Collections.singletonList(new Visit()));
 		DiagnosticReport actualDiagnosticReport = obsBasedDiagnosticReportService.create(diagnosticReportToCreate);
 		
 		verify(obsService, times(2)).saveObs(any(Obs.class), eq(SAVE_OBS_MESSAGE));
@@ -187,6 +228,62 @@ public class ObsBasedDiagnosticReportServiceTest {
 		verify(orderService, times(2)).getOrderByUuid(orderUuid);
 		
 		assertEquals(order1.getFulfillerStatus(), Order.FulfillerStatus.COMPLETED);
+	}
+	
+	@Test
+	public void shouldCreateVisitIfNotAlreadyPresent() {
+		DiagnosticReport diagnosticReportToCreate = new DiagnosticReport();
+		String orderUuid = "uuid-12";
+		List<Reference> basedOn = mockBasedOn(orderUuid);
+		diagnosticReportToCreate.setBasedOn(basedOn);
+		CodeableConcept conceptFromTheRequest = new CodeableConcept();
+		conceptFromTheRequest.setCoding(Collections.singletonList(new Coding("HL7", orderUuid, "Test1")));
+		diagnosticReportToCreate.setCode(conceptFromTheRequest);
+		
+		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
+		fhirDiagnosticReport.setResults(of(new Obs(), new Obs()).collect(toSet()));
+		
+		Patient patient = new Patient(123);
+		Concept concept = new Concept(12);
+		concept.setUuid(orderUuid);
+		fhirDiagnosticReport.setSubject(patient);
+		fhirDiagnosticReport.setCode(new Concept(12));
+		Order order1 = new Order();
+		order1.setConcept(concept);
+		order1.setUuid("uuid1");
+		Order order2 = new Order();
+		order2.setUuid("should_not_be_picked");
+		order2.setFulfillerStatus(Order.FulfillerStatus.COMPLETED);
+		
+		DiagnosticReport mockDiagnosticReport = new DiagnosticReport();
+		FhirDiagnosticReport updatedFhirDiagnosticReport = new FhirDiagnosticReport();
+		
+		when(orderService.getOrderByUuid(any())).thenReturn(order1);
+		when(translator.toOpenmrsType(diagnosticReportToCreate)).thenReturn(fhirDiagnosticReport);
+		doNothing().when(diagnosticReportObsValidator).validate(fhirDiagnosticReport);
+		when(dao.createOrUpdate(fhirDiagnosticReport)).thenReturn(updatedFhirDiagnosticReport);
+		when(translator.toFhirResource(updatedFhirDiagnosticReport)).thenReturn(mockDiagnosticReport);
+		
+		User authenticatedUser = new User();
+		authenticatedUser.setPerson(new Person());
+		UserContext mockUserContext = mock(UserContext.class);
+		when(mockUserContext.getAuthenticatedUser()).thenReturn(authenticatedUser);
+		when(mockUserContext.getLocation()).thenReturn(new Location());
+		Context.setUserContext(mockUserContext);
+		when(encounterService.getEncounterType("LAB_RESULT")).thenReturn(new EncounterType());
+		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(Collections.emptyList());
+		when(visitService.getVisitTypes(any())).thenReturn(Collections.singletonList(new VisitType()));
+		when(visitService.saveVisit(any())).thenReturn(new Visit());
+		
+		DiagnosticReport actualDiagnosticReport = obsBasedDiagnosticReportService.create(diagnosticReportToCreate);
+		
+		verify(obsService, times(2)).saveObs(any(Obs.class), eq(SAVE_OBS_MESSAGE));
+		
+		assertEquals(mockDiagnosticReport, actualDiagnosticReport);
+		verify(orderService, times(2)).getOrderByUuid(orderUuid);
+		
+		assertEquals(order1.getFulfillerStatus(), Order.FulfillerStatus.COMPLETED);
+		verify(visitService, times(1)).saveVisit(any());
 	}
 	
 	@Test(expected = UnprocessableEntityException.class)
