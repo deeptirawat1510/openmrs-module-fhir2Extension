@@ -21,6 +21,8 @@ public class LabResult {
 	
 	private String labReportNotes;
 	
+	private String labResultValue;
+	
 	private BiFunction<Concept, String, Obs> obsFactory;
 	
 	public boolean isPanel() {
@@ -36,7 +38,7 @@ public class LabResult {
 	}
 	
 	public Optional<Obs> newValueObs(Concept obsConcept, String value) {
-		if (value != null) {
+		if (value != null && !"".equals(value.trim())) {
 			return Optional.of(obsFactory.apply(obsConcept, value));
 		}
 		return Optional.empty();
@@ -88,5 +90,9 @@ public class LabResult {
 			return this;
 		}
 		
+		public LabResultBuilder labResultValue(String value) {
+			this.labResultValue = value;
+			return this;
+		}
 	}
 }
