@@ -70,7 +70,7 @@ public class DiagnosticReportObsLabResultTranslatorImpl implements DiagnosticRep
         labResult.newValueObs(conceptService.getConceptByName(LAB_NOTES_CONCEPT), labResult.getLabReportNotes())
                 .ifPresent(labResultObs::add);
 		labResult.newValueObs(labResult.getConcept(), labResult.getLabResultValue())
-				.ifPresent(labResultObs::add);
+					.ifPresent(labResultObs::add);
         return labResultObs;
     }
 	

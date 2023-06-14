@@ -105,7 +105,7 @@ public class ObsBasedDiagnosticReportTranslatorImpl implements ObsBasedDiagnosti
 		}
 	}
 	
-	private BiFunction<Concept, String, Obs> newObs(Patient subject, Date issued) {
+	private BiFunction<Concept, Object, Obs> newObs(Patient subject, Date issued) {
 		return (concept, value) -> {
 			Obs obs = new Obs();
 			obs.setPerson(subject);
@@ -116,13 +116,24 @@ public class ObsBasedDiagnosticReportTranslatorImpl implements ObsBasedDiagnosti
 		};
 	}
 	
-	private void setObsValue(Obs obs, String value) {
+	private void setObsValue(Obs obs, Object value) {
 		if (value != null) {
-			try {
-				obs.setValueAsString(value);
-			}
-			catch (ParseException e) {
-				throw new APIException(e);
+			if (value instanceof Concept)
+				obs.setValueCoded((Concept) value);
+			else if (value instanceof Boolean) {
+				obs.setValueBoolean((Boolean) value);
+			} else if (value instanceof Date) {
+				obs.setValueDatetime((Date) value);
+			} else if (value instanceof Double) {
+				obs.setValueNumeric((Double) value);
+			} else {
+				try {
+					
+					obs.setValueAsString((String) value);
+				}
+				catch (ParseException e) {
+					throw new APIException(e);
+				}
 			}
 		}
 	}

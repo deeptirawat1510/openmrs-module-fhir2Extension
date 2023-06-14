@@ -148,7 +148,7 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 
 			List<Obs> reportResults = diagnosticReport.getResult().stream().map(reference -> {
 				IBaseResource obsResource = reference.getResource();
-				if ((obsResource != null) && (obsResource instanceof Observation) ) {
+				if ((obsResource != null) && (obsResource instanceof Observation)) {
 					return observationTranslator.toOpenmrsType((Observation) obsResource);
 				} else {
 					return null;
@@ -163,10 +163,10 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 			Encounter encounter = createNewEncounterForReport(fhirDiagnosticReport, order);
 
 			fhirDiagnosticReport.setEncounter(encounter);
-			if(attachmentObs.isEmpty()) {
+			if (attachmentObs.isEmpty()) {
 				Obs obs = reportResults.get(0);
-				LabResult labResult = LabResult.builder().
-						labResultValue(obs.getValueNumeric().toString())
+				LabResult labResult = LabResult.builder()
+						.setLabResultValue(obs)
 						.concept(fhirDiagnosticReport.getCode())
 						.obsFactory(newObs(fhirDiagnosticReport.getSubject(), fhirDiagnosticReport.getIssued()))
 						.build();
@@ -179,7 +179,7 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 			diagnosticReportObsValidator.validate(fhirDiagnosticReport);
 
 			Set<Obs> reportObs = saveReportObs(fhirDiagnosticReport, order, encounter);
-			
+
 			fhirDiagnosticReport.setResults(reportObs);
 
 			FhirDiagnosticReport createdFhirDiagnosticReport = fhirDiagnosticReportDao.createOrUpdate(fhirDiagnosticReport);
@@ -191,7 +191,7 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 		}
 	}
 	
-	private BiFunction<Concept, String, Obs> newObs(Patient subject, Date issued) {
+	private BiFunction<Concept, Object, Obs> newObs(Patient subject, Date issued) {
 		return (concept, value) -> {
 			Obs obs = new Obs();
 			obs.setPerson(subject);
@@ -202,13 +202,24 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 		};
 	}
 	
-	private void setObsValue(Obs obs, String value) {
+	private void setObsValue(Obs obs, Object value) {
 		if (value != null) {
-			try {
-				obs.setValueAsString(value);
-			}
-			catch (ParseException e) {
-				throw new APIException(e);
+			if (value instanceof Concept)
+				obs.setValueCoded((Concept) value);
+			else if (value instanceof Boolean) {
+				obs.setValueBoolean((Boolean) value);
+			} else if (value instanceof Date) {
+				obs.setValueDatetime((Date) value);
+			} else if (value instanceof Double) {
+				obs.setValueNumeric((Double) value);
+			} else {
+				try {
+					
+					obs.setValueAsString((String) value);
+				}
+				catch (ParseException e) {
+					throw new APIException(e);
+				}
 			}
 		}
 	}

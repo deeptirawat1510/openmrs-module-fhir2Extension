@@ -95,7 +95,7 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 		assertEquals(REPORT_NAME, labResult.getLabReportFileName());
 		assertNull(labResult.getLabReportNotes());
 		Concept testConcept = newConcept();
-		BiFunction<Concept, String, Obs> obsFactory = labResult.getObsFactory();
+		BiFunction<Concept, Object, Obs> obsFactory = labResult.getObsFactory();
 		Obs resultObs = obsFactory.apply(testConcept, "result");
 		assertEquals(patient, resultObs.getPerson());
 		assertEquals(issuedDate, resultObs.getObsDatetime());
@@ -128,7 +128,7 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 		assertEquals(REPORT_NAME, labResult.getLabReportFileName());
 		assertEquals(LAB_TEST_NOTES, labResult.getLabReportNotes());
 		Concept testConcept = newConcept();
-		BiFunction<Concept, String, Obs> obsFactory = labResult.getObsFactory();
+		BiFunction<Concept, Object, Obs> obsFactory = labResult.getObsFactory();
 		Obs resultObs = obsFactory.apply(testConcept, "result");
 		assertEquals(patient, resultObs.getPerson());
 		assertEquals(issuedDate, resultObs.getObsDatetime());

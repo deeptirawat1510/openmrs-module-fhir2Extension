@@ -158,11 +158,11 @@ public class DiagnosticReportObsLabResultTranslatorTest {
 		assertNull(labResult.getLabReportNotes());
 	}
 	
-	private BiFunction<Concept, String, Obs> groupedObsFunction() {
+	private BiFunction<Concept, Object, Obs> groupedObsFunction() {
         return (concept, value) -> {
             Obs obs = new Obs();
             obs.setConcept(concept);
-            obs.setValueText(value);
+            obs.setValueText((String) value);
             return obs;
         };
     }

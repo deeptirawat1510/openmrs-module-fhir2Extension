@@ -588,7 +588,7 @@ public class ObsBasedDiagnosticReportServiceTest {
 		Concept concept = new Concept(12);
 		concept.setUuid(orderUuid);
 		ConceptDatatype conceptDatatype = new ConceptDatatype();
-		conceptDatatype.setHl7Abbreviation(ConceptDatatype.TEXT);
+		conceptDatatype.setHl7Abbreviation(ConceptDatatype.NUMERIC);
 		concept.setDatatype(conceptDatatype);
 
 		Obs topLevelObs = new Obs();
@@ -639,19 +639,113 @@ public class ObsBasedDiagnosticReportServiceTest {
 		verify(diagnosticReportObsLabResultTranslator).toOpenmrsType(labResultArgumentCaptor.capture());
 
 		LabResult labResult = labResultArgumentCaptor.getValue();
-		BiFunction<Concept, String, Obs> obsFactory = labResult.getObsFactory();
+		BiFunction<Concept, Object, Obs> obsFactory = labResult.getObsFactory();
 		Obs resultObs = obsFactory.apply(concept, "10.0");
 
 		assertEquals(diagnosticReportToCreate, actualDiagnosticReport);
-
-		assertEquals(labResult.getLabResultValue(), "10.0");
-
+		
+		 assertEquals(labResult.getLabResultValue(), "10.0");
+		
 		assertEquals(patient, resultObs.getPerson());
 
 		assertEquals(issuedDate, resultObs.getObsDatetime());
 		assertEquals(concept, resultObs.getConcept());
 	}
 	
+	@Test
+	public void shouldCreateDiagnosticReportWithObs_Codeable_Concept_ResultAnd_UpdateOrderStatusToCOMPLETED() {
+		DiagnosticReport diagnosticReportToCreate = new DiagnosticReport();
+		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
+		
+		Observation observation = new Observation();
+		observation.setId("test");
+		observation.setStatus(Observation.ObservationStatus.FINAL);
+		Type type = new CodeableConcept();
+		observation.setValue(type);
+		Reference reference = new Reference();
+		reference.setReference("#test");
+		reference.setType("Observation");
+		reference.setResource(observation);
+		
+		diagnosticReportToCreate.setResult(Collections.singletonList(reference));
+		
+		String orderUuid = "uuid-12";
+		List<Reference> basedOn = mockBasedOn(orderUuid);
+		diagnosticReportToCreate.setBasedOn(basedOn);
+		Date issuedDate = new Date();
+		
+		CodeableConcept conceptFromTheRequest = new CodeableConcept();
+		conceptFromTheRequest.setCoding(Collections.singletonList(new Coding("HL7", orderUuid, "Test1")));
+		diagnosticReportToCreate.setCode(conceptFromTheRequest);
+		
+		Patient patient = new Patient(123);
+		Concept concept = new Concept(12);
+		Concept testConcept = new Concept();
+		concept.setUuid(orderUuid);
+		ConceptDatatype conceptDatatype = new ConceptDatatype();
+		conceptDatatype.setHl7Abbreviation(ConceptDatatype.CODED);
+		concept.setDatatype(conceptDatatype);
+		
+		Obs topLevelObs = new Obs();
+		Obs labObs = new Obs();
+		labObs.setGroupMembers(of(childObs("", testConcept)).collect(toSet()));
+		topLevelObs.addGroupMember(labObs);
+		
+		fhirDiagnosticReport.setSubject(patient);
+		fhirDiagnosticReport.setCode(new Concept(12));
+		fhirDiagnosticReport.setIssued(issuedDate);
+		
+		Order order1 = new Order();
+		order1.setConcept(concept);
+		order1.setUuid("uuid1");
+		CareSetting careSetting = new CareSetting();
+		OrderType orderType = new OrderType(1);
+		String careSettingName = CareSetting.CareSettingType.OUTPATIENT.toString();
+		
+		User authenticatedUser = new User();
+		authenticatedUser.setPerson(new Person());
+		UserContext mockUserContext = mock(UserContext.class);
+		when(mockUserContext.getAuthenticatedUser()).thenReturn(authenticatedUser);
+		when(mockUserContext.getLocation()).thenReturn(new Location());
+		Context.setUserContext(mockUserContext);
+		
+		Obs obs1 = new Obs();
+		obs1.setPerson(patient);
+		obs1.setConcept(concept);
+		obs1.setValueCoded(testConcept);
+		obs1.setOrder(order1);
+		
+		when(orderService.getCareSettingByName(careSettingName)).thenReturn(careSetting);
+		when(orderService.getOrderTypeByName("Lab Order")).thenReturn(orderType);
+		when(orderService.getOrderByUuid("uuid-12")).thenReturn(order1);
+		when(orderService.getOrders(patient, careSetting, orderType, false)).thenReturn(Arrays.asList(order1));
+		when(translator.toOpenmrsType(diagnosticReportToCreate)).thenReturn(fhirDiagnosticReport);
+		doNothing().when(diagnosticReportObsValidator).validate(fhirDiagnosticReport);
+		when(dao.createOrUpdate(fhirDiagnosticReport)).thenReturn(fhirDiagnosticReport);
+		when(translator.toFhirResource(fhirDiagnosticReport)).thenReturn(diagnosticReportToCreate);
+		when(observationTranslator.toOpenmrsType((Observation) diagnosticReportToCreate.getResult().get(0).getResource()))
+		        .thenReturn(obs1);
+		when(diagnosticReportObsLabResultTranslator.toOpenmrsType(any(LabResult.class))).thenReturn(topLevelObs);
+		
+		when(encounterService.getEncounterType("LAB_RESULT")).thenReturn(new EncounterType());
+		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(Collections.singletonList(new Visit()));
+		
+		DiagnosticReport actualDiagnosticReport = obsBasedDiagnosticReportService.create(diagnosticReportToCreate);
+		verify(diagnosticReportObsLabResultTranslator).toOpenmrsType(labResultArgumentCaptor.capture());
+		
+		LabResult labResult = labResultArgumentCaptor.getValue();
+		BiFunction<Concept, Object, Obs> obsFactory = labResult.getObsFactory();
+		Obs resultObs = obsFactory.apply(concept, testConcept);
+		
+		assertEquals(diagnosticReportToCreate, actualDiagnosticReport);
+		
+		assertEquals(labResult.getLabResultValue(), testConcept);
+		
+		assertEquals(patient, resultObs.getPerson());
+		
+		assertEquals(issuedDate, resultObs.getObsDatetime());
+		assertEquals(concept, resultObs.getConcept());
+	}
 	private List<Reference> mockBasedOn() {
 		return mockBasedOn("order-uuid");
 	}
@@ -667,10 +761,13 @@ public class ObsBasedDiagnosticReportServiceTest {
 		return obsSet.stream().filter(obs -> obs.getConcept().getDisplayString().equals(conceptName)).findAny().get();
 	}
 	
-	private Obs childObs(String concept, String value) {
+	private Obs childObs(String concept, Object value) {
 		Obs obs = new Obs();
 		obs.setConcept(newMockConcept(concept));
-		obs.setValueText(value);
+		if (value instanceof Concept)
+			obs.setValueCoded((Concept) value);
+		else
+			obs.setValueText((String) value);
 		return obs;
 	}
 	
