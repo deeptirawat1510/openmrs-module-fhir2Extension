@@ -24,6 +24,8 @@ public class LabResult {
 	
 	private Object labResultValue;
 	
+	private Obs.Interpretation interpretationOfLabResultValue;
+	
 	private BiFunction<Concept, Object, Obs> obsFactory;
 	
 	public boolean isPanel() {
@@ -92,6 +94,10 @@ public class LabResult {
 		}
 		
 		public LabResultBuilder setLabResultValue(Obs obs) {
+			if (obs.getInterpretation() != null) {
+				Obs.Interpretation interpretation = obs.getInterpretation();
+				this.interpretationOfLabResultValue = interpretation;
+			}
 			String datatype = obs.getConcept().getDatatype().getHl7Abbreviation();
 			if (datatype.equals(ConceptDatatype.NUMERIC))
 				this.labResultValue = obs.getValueNumeric().toString();

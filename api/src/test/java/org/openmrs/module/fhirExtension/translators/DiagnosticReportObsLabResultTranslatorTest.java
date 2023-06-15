@@ -157,24 +157,53 @@ public class DiagnosticReportObsLabResultTranslatorTest {
 		assertNull(labResult.getLabReportFileName());
 		assertNull(labResult.getLabReportNotes());
 	}
-	
+	@Test
+	public void givenObs_WhenAbnormalLabResultIsPresent_ShouldTranslateToLabResult() {
+		Concept testConcept = new Concept();
+		
+		LabResult labResult = LabResult.builder().interpretationOfLabResultValue(Obs.Interpretation.ABNORMAL)
+		        .concept(testConcept).obsFactory(groupedObsFunction()).build();
+		mockConceptServiceGetConceptByName();
+		
+		Obs obsModel = diagnosticReportObsResultTranslatorHelper.toOpenmrsType(labResult);
+		
+		assertEquals(testConcept, obsModel.getConcept());
+		Set<Obs> obsGroupMembersTopLevel = obsModel.getGroupMembers();
+		assertEquals(1, obsGroupMembersTopLevel.size());
+		
+		Obs obsModelSecondLevel = obsGroupMembersTopLevel.iterator().next();
+		
+		assertEquals(testConcept, obsModelSecondLevel.getConcept());
+		Set<Obs> obsGroupMembersSecondLevel = obsModelSecondLevel.getGroupMembers();
+		obsGroupMembersSecondLevel.iterator().next().setInterpretation(Obs.Interpretation.ABNORMAL);
+		assertEquals(1, obsGroupMembersSecondLevel.size());
+		
+		Obs reportObs = fetchObs(obsGroupMembersSecondLevel, "LAB_ABNORMAL");
+		assertEquals(Obs.Interpretation.ABNORMAL, reportObs.getInterpretation());
+	}
 	private BiFunction<Concept, Object, Obs> groupedObsFunction() {
-        return (concept, value) -> {
-            Obs obs = new Obs();
-            obs.setConcept(concept);
-            obs.setValueText((String) value);
-            return obs;
-        };
-    }
+		return (concept, value) -> {
+			Obs obs = new Obs();
+			obs.setConcept(concept);
+			if (value instanceof Boolean) {
+				obs.setValueBoolean((Boolean) value);
+			} else
+				obs.setValueText((String) value);
+			return obs;
+		};
+	}
 	
 	private Obs fetchObs(Set<Obs> obsSet, String conceptName) {
-        return obsSet.stream().filter(obs -> obs.getConcept().getDisplayString().equals(conceptName)).findAny().get();
-    }
+		return obsSet.stream().filter(obs -> obs.getConcept().getDisplayString().equals(conceptName)).findAny().get();
+	}
 	
-	private Obs childObs(String concept, String value) {
+	private Obs childObs(String concept, Object value) {
 		Obs obs = new Obs();
 		obs.setConcept(newMockConcept(concept));
-		obs.setValueText(value);
+		if (value instanceof Boolean)
+			obs.setValueBoolean((Boolean) value);
+		else
+			obs.setValueText((String) value);
 		return obs;
 	}
 	

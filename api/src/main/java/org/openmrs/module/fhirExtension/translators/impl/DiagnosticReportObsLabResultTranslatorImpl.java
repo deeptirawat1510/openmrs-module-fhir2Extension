@@ -24,6 +24,8 @@ public class DiagnosticReportObsLabResultTranslatorImpl implements DiagnosticRep
 	
 	public static final String LAB_NOTES_CONCEPT = "LAB_NOTES";
 	
+	public static final String LAB_ABNORMAL = "LAB_ABNORMAL";
+	
 	@Autowired
 	private ConceptService conceptService;
 	
@@ -71,6 +73,10 @@ public class DiagnosticReportObsLabResultTranslatorImpl implements DiagnosticRep
                 .ifPresent(labResultObs::add);
 		labResult.newValueObs(labResult.getConcept(), labResult.getLabResultValue())
 					.ifPresent(labResultObs::add);
+		if(labResult.getInterpretationOfLabResultValue() != null) {
+			labResult.newValueObs(conceptService.getConceptByName(LAB_ABNORMAL), labResult.getInterpretationOfLabResultValue() == Obs.Interpretation.ABNORMAL)
+					.ifPresent(labResultObs::add);
+		}
         return labResultObs;
     }
 	
