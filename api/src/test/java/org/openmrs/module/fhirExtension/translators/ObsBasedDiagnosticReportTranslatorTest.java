@@ -9,7 +9,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
 import org.openmrs.Obs;
@@ -55,7 +55,7 @@ public class ObsBasedDiagnosticReportTranslatorTest {
 	@Mock
 	private DiagnosticReportObsLabResultTranslatorImpl diagnosticReportObsLabResultTranslator;
 	
-	@Mock
+	@Mock(lenient = true)
 	private ProviderService providerService;
 	
 	@Mock

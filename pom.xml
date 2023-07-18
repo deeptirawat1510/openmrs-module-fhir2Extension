@@ -29,10 +29,13 @@
 	</modules>
 
     <properties>
-			<openmrs.platform.version>2.4.2</openmrs.platform.version>
-			<openmrs.fhir2.version>1.8.0</openmrs.fhir2.version>
+			<openmrsPlatformVersion>2.5.10</openmrsPlatformVersion>
+			<openmrs.fhir2.version>1.10.0-SNAPSHOT</openmrs.fhir2.version>
+			<web.services.version>2.38.0</web.services.version>
 			<junitVersion>4.13.1</junitVersion>
 			<lombokVersion>1.18.16</lombokVersion>
+			<mockitoVersion>3.5.11</mockitoVersion>
+			<powerMockVersion>2.0.9</powerMockVersion>
     </properties>
 
 	<repositories>
@@ -105,7 +108,13 @@
 			<dependency>
 				<groupId>org.openmrs.api</groupId>
 				<artifactId>openmrs-api</artifactId>
-				<version>${openmrs.platform.version}</version>
+				<version>${openmrsPlatformVersion}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.openmrs.module</groupId>
+				<artifactId>webservices.rest-omod-common</artifactId>
+				<version>${web.services.version}</version>
 				<scope>provided</scope>
 			</dependency>
 			<dependency>
@@ -118,6 +127,30 @@
 				<artifactId>lombok</artifactId>
 				<version>${lombokVersion}</version>
 				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-core</artifactId>
+				<version>${mockitoVersion}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>org.hamcrest</groupId>
+						<artifactId>hamcrest-core</artifactId>
+					</exclusion>
+				</exclusions>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.powermock</groupId>
+				<artifactId>powermock-module-junit4</artifactId>
+				<version>${powerMockVersion}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.powermock</groupId>
+				<artifactId>powermock-api-mockito2</artifactId>
+				<version>${powerMockVersion}</version>
+				<scope>test</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

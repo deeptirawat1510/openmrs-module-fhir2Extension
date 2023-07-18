@@ -157,6 +157,7 @@ public class DiagnosticReportObsLabResultTranslatorTest {
 		assertNull(labResult.getLabReportFileName());
 		assertNull(labResult.getLabReportNotes());
 	}
+	
 	@Test
 	public void givenObs_WhenAbnormalLabResultIsPresent_ShouldTranslateToLabResult() {
 		Concept testConcept = new Concept();
@@ -181,6 +182,7 @@ public class DiagnosticReportObsLabResultTranslatorTest {
 		Obs reportObs = fetchObs(obsGroupMembersSecondLevel, "LAB_ABNORMAL");
 		assertEquals(Obs.Interpretation.ABNORMAL, reportObs.getInterpretation());
 	}
+	
 	private BiFunction<Concept, Object, Obs> groupedObsFunction() {
 		return (concept, value) -> {
 			Obs obs = new Obs();

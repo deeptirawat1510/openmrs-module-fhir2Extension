@@ -19,9 +19,17 @@
             <version>${project.parent.version}</version>
         </dependency>
 		<dependency>
+			<groupId>org.openmrs.module</groupId>
+			<artifactId>fhir2-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.openmrs.module</groupId>
+			<artifactId>webservices.rest-omod-common</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.openmrs.web</groupId>
 			<artifactId>openmrs-web</artifactId>
-			<version>${openmrs.platform.version}</version>
+			<version>${openmrsPlatformVersion}</version>
 			<scope>provided</scope>
 			<exclusions>
 				<exclusion>
@@ -33,6 +41,30 @@
 					<artifactId>jsp-api</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+
+		<!--        Test Dependencies       -->
+		<dependency>
+			<groupId>org.openmrs.web</groupId>
+			<artifactId>openmrs-web</artifactId>
+			<version>${openmrsPlatformVersion}</version>
+			<scope>provided</scope>
+			<classifier>tests</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.hamcrest</groupId>
+					<artifactId>hamcrest-core</artifactId>
+				</exclusion>
+			</exclusions>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 

@@ -10,7 +10,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.openmrs.CareSetting;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
@@ -68,7 +68,7 @@ import static org.mockito.Mockito.when;
 import static org.openmrs.module.fhirExtension.service.ObsBasedDiagnosticReportService.SAVE_OBS_MESSAGE;
 import static org.openmrs.module.fhirExtension.translators.impl.DiagnosticReportObsLabResultTranslatorImpl.*;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class ObsBasedDiagnosticReportServiceTest {
 	
 	private static final String REPORT_URL = "/100/uploadReport.pdf";
@@ -545,24 +545,25 @@ public class ObsBasedDiagnosticReportServiceTest {
 		when(observationTranslator.toOpenmrsType((Observation) diagnosticReportToCreate.getResult().get(0).getResource()))
 		        .thenReturn(obs1);
 		when(diagnosticReportObsLabResultTranslator.toOpenmrsType(any(LabResult.class))).thenReturn(topLevelObs);
-
+		
 		when(encounterService.getEncounterType("LAB_RESULT")).thenReturn(new EncounterType());
 		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(Collections.singletonList(new Visit()));
 		DiagnosticReport actualDiagnosticReport = obsBasedDiagnosticReportService.create(diagnosticReportToCreate);
-
+		
 		verify(obsService, times(1)).saveObs(any(Obs.class), eq(SAVE_OBS_MESSAGE));
 		verify(diagnosticReportObsLabResultTranslator).toOpenmrsType(labResultArgumentCaptor.capture());
-
+		
 		assertEquals(diagnosticReportToCreate, actualDiagnosticReport);
 		assertNotNull(resultValue.getOrder());
-
+		
 		assertEquals(order1.getFulfillerStatus(), Order.FulfillerStatus.COMPLETED);
 	}
+	
 	@Test
 	public void shouldUpdateObsWithPerson_IssuedDate_LabResultAnd_UpdateOrderStatusToCOMPLETED() {
 		DiagnosticReport diagnosticReportToCreate = new DiagnosticReport();
 		FhirDiagnosticReport fhirDiagnosticReport = new FhirDiagnosticReport();
-
+		
 		Observation observation = new Observation();
 		observation.setId("test");
 		observation.setStatus(Observation.ObservationStatus.FINAL);
@@ -572,54 +573,54 @@ public class ObsBasedDiagnosticReportServiceTest {
 		reference.setReference("#test");
 		reference.setType("Observation");
 		reference.setResource(observation);
-
+		
 		diagnosticReportToCreate.setResult(Collections.singletonList(reference));
-
+		
 		String orderUuid = "uuid-12";
 		List<Reference> basedOn = mockBasedOn(orderUuid);
 		diagnosticReportToCreate.setBasedOn(basedOn);
 		Date issuedDate = new Date();
-
+		
 		CodeableConcept conceptFromTheRequest = new CodeableConcept();
 		conceptFromTheRequest.setCoding(Collections.singletonList(new Coding("HL7", orderUuid, "Test1")));
 		diagnosticReportToCreate.setCode(conceptFromTheRequest);
-
+		
 		Patient patient = new Patient(123);
 		Concept concept = new Concept(12);
 		concept.setUuid(orderUuid);
 		ConceptDatatype conceptDatatype = new ConceptDatatype();
 		conceptDatatype.setHl7Abbreviation(ConceptDatatype.NUMERIC);
 		concept.setDatatype(conceptDatatype);
-
+		
 		Obs topLevelObs = new Obs();
 		Obs labObs = new Obs();
 		labObs.setGroupMembers(of(childObs("", "10.0")).collect(toSet()));
 		topLevelObs.addGroupMember(labObs);
-
+		
 		fhirDiagnosticReport.setSubject(patient);
 		fhirDiagnosticReport.setCode(new Concept(12));
 		fhirDiagnosticReport.setIssued(issuedDate);
-
+		
 		Order order1 = new Order();
 		order1.setConcept(concept);
 		order1.setUuid("uuid1");
 		CareSetting careSetting = new CareSetting();
 		OrderType orderType = new OrderType(1);
 		String careSettingName = CareSetting.CareSettingType.OUTPATIENT.toString();
-
+		
 		User authenticatedUser = new User();
 		authenticatedUser.setPerson(new Person());
 		UserContext mockUserContext = mock(UserContext.class);
 		when(mockUserContext.getAuthenticatedUser()).thenReturn(authenticatedUser);
 		when(mockUserContext.getLocation()).thenReturn(new Location());
 		Context.setUserContext(mockUserContext);
-
+		
 		Obs obs1 = new Obs();
 		obs1.setValueNumeric(10.0);
 		obs1.setPerson(patient);
 		obs1.setConcept(concept);
 		obs1.setOrder(order1);
-
+		
 		when(orderService.getCareSettingByName(careSettingName)).thenReturn(careSetting);
 		when(orderService.getOrderTypeByName("Lab Order")).thenReturn(orderType);
 		when(orderService.getOrderByUuid("uuid-12")).thenReturn(order1);
@@ -629,25 +630,25 @@ public class ObsBasedDiagnosticReportServiceTest {
 		when(dao.createOrUpdate(fhirDiagnosticReport)).thenReturn(fhirDiagnosticReport);
 		when(translator.toFhirResource(fhirDiagnosticReport)).thenReturn(diagnosticReportToCreate);
 		when(observationTranslator.toOpenmrsType((Observation) diagnosticReportToCreate.getResult().get(0).getResource()))
-				.thenReturn(obs1);
+		        .thenReturn(obs1);
 		when(diagnosticReportObsLabResultTranslator.toOpenmrsType(any(LabResult.class))).thenReturn(topLevelObs);
-
+		
 		when(encounterService.getEncounterType("LAB_RESULT")).thenReturn(new EncounterType());
 		when(visitService.getActiveVisitsByPatient(patient)).thenReturn(Collections.singletonList(new Visit()));
-
+		
 		DiagnosticReport actualDiagnosticReport = obsBasedDiagnosticReportService.create(diagnosticReportToCreate);
 		verify(diagnosticReportObsLabResultTranslator).toOpenmrsType(labResultArgumentCaptor.capture());
-
+		
 		LabResult labResult = labResultArgumentCaptor.getValue();
 		BiFunction<Concept, Object, Obs> obsFactory = labResult.getObsFactory();
 		Obs resultObs = obsFactory.apply(concept, "10.0");
-
+		
 		assertEquals(diagnosticReportToCreate, actualDiagnosticReport);
 		
-		 assertEquals(labResult.getLabResultValue(), "10.0");
+		assertEquals(labResult.getLabResultValue(), "10.0");
 		
 		assertEquals(patient, resultObs.getPerson());
-
+		
 		assertEquals(issuedDate, resultObs.getObsDatetime());
 		assertEquals(concept, resultObs.getConcept());
 	}
