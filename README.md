@@ -2,7 +2,8 @@ openmrs-module-fhir2Extension
 ==========================
 
 This module's objective is to provide specific implementation extensions. To start with
-1. DiagnosticReport - using the obs model as basis of DiagnosticReport (compatible with the datastructures used by EMRAPI and Bahmni) 
+1. DiagnosticReport - using the obs model as basis of DiagnosticReport (compatible with the datastructures used by EMRAPI and Bahmni)
+2. FHIR Export - Exports Patient data in FHIR format
 
 
 Description
