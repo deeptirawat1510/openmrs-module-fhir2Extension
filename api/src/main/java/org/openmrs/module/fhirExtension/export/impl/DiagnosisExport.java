@@ -3,6 +3,7 @@ package org.openmrs.module.fhirExtension.export.impl;
 import lombok.extern.log4j.Log4j2;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Condition;
 import org.hl7.fhir.r4.model.DateTimeType;
 import org.openmrs.Concept;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -78,6 +80,7 @@ public class DiagnosisExport implements Exporter {
 		CodeableConcept clinicalStatus = getClinicalStatus(visitDiagnosisObsGroup);
 		CodeableConcept codeableConcept = conceptTranslator.toFhirResource(codedDiagnosisObs.getValueCoded());
 		condition.setId(codedDiagnosisObs.getUuid());
+		condition.setCategory(getCategory());
 		condition.setClinicalStatus(clinicalStatus);
 		condition.setOnset(new DateTimeType().setValue(codedDiagnosisObs.getObsDatetime()));
 		condition.setCode(codeableConcept);
@@ -115,5 +118,12 @@ public class DiagnosisExport implements Exporter {
 			conditionClinicalStatus = ConditionClinicalStatus.ACTIVE;
 		}
 		return conditionClinicalStatusTranslator.toFhirResource(conditionClinicalStatus);
+	}
+	
+	private List<CodeableConcept> getCategory() {
+		CodeableConcept codeableConcept = new CodeableConcept();
+		Coding coding = new Coding("http://terminology.hl7.org/CodeSystem/condition-category", "encounter-diagnosis",
+		        "Encounter Diagnosis");
+		return Collections.singletonList(codeableConcept.addCoding(coding));
 	}
 }

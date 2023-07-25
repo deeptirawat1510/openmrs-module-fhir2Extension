@@ -16,7 +16,9 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
@@ -47,6 +49,30 @@ public class ExportTaskTest {
 		
 		assertNotNull(initialTaskResponse);
 		assertEquals(FhirTask.TaskStatus.ACCEPTED, initialTaskResponse.getStatus());
+	}
+	
+	@Test
+	public void shouldReturnTrue_whenNoDateRangeProvided() {
+		boolean validParams = exportTask.validateParams(null, null);
+		assertTrue(validParams);
+	}
+	
+	@Test
+	public void shouldReturnTrue_whenValidDateRangeProvided() {
+		boolean validParams = exportTask.validateParams("2023-05-01", "2023-05-31");
+		assertTrue(validParams);
+	}
+	
+	@Test
+	public void shouldReturnFalse_whenInvalidStartDateProvided() {
+		boolean validParams = exportTask.validateParams("2023-05-AB", "2023-05-31");
+		assertFalse(validParams);
+	}
+	
+	@Test
+	public void shouldReturnFalse_whenInvalidEndDateProvided() {
+		boolean validParams = exportTask.validateParams("2023-05-01", "2023-05-AB");
+		assertFalse(validParams);
 	}
 	
 	private FhirTask mockFhirTask() {

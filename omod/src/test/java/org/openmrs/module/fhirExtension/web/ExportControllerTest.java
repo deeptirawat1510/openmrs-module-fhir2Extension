@@ -59,12 +59,24 @@ public class ExportControllerTest {
 	public void shouldGetFhirTaskUrl_whenFhirExportCalled() {
 		doNothing().when(exportAsyncService).export(any(), any(), any(), any(), any());
 		when(exportTask.getInitialTaskResponse()).thenReturn(mockFhirTask());
+		when(exportTask.validateParams("2023-05-01", "2023-05-31")).thenReturn(true);
 		ResponseEntity<SimpleObject> responseEntity = exportController.export("2023-05-01", "2023-05-31");
 		SimpleObject simpleObject = responseEntity.getBody();
 		assertEquals(HttpStatus.ACCEPTED, responseEntity.getStatusCode());
 		assertEquals("ACCEPTED", simpleObject.get("status"));
 		assertEquals(FHIR_TASK_UUID, simpleObject.get("taskId"));
 		assertThat(simpleObject.get("link"), CoreMatchers.containsString(FHIR2_R4_TASK_URI + FHIR_TASK_UUID));
+	}
+	
+	@Test
+	public void shouldGetBadRequest_whenFhirExportCalledWithInvalidDateFormat() {
+		doNothing().when(exportAsyncService).export(any(), any(), any(), any(), any());
+		when(exportTask.getInitialTaskResponse()).thenReturn(mockFhirTask());
+		when(exportTask.validateParams("2023-05-AB", "2023-05-31")).thenReturn(false);
+		ResponseEntity<SimpleObject> responseEntity = exportController.export("2023-05-AB", "2023-05-31");
+		SimpleObject simpleObject = responseEntity.getBody();
+		assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
+		assertEquals("Invalid Date Format [yyyy-mm-dd]", simpleObject.get("error"));
 	}
 	
 	private FhirTask mockFhirTask() {

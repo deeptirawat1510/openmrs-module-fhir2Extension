@@ -39,6 +39,11 @@ public class ExportController extends BaseRestController {
 	@ResponseBody
 	public ResponseEntity<SimpleObject> export(@RequestParam(value = "startDate", required = false) String startDate,
 											   @RequestParam(value = "endDate", required = false) String endDate) {
+		if (!exportTask.validateParams(startDate, endDate)) {
+			SimpleObject response = new SimpleObject();
+			response.add("error", "Invalid Date Format [yyyy-mm-dd]");
+			return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+		}
 		FhirTask fhirTask = exportTask.getInitialTaskResponse();
 		exportAsyncService.export(fhirTask, startDate, endDate, Context.getUserContext(),
 		    ServletUriComponentsBuilder.fromCurrentContextPath().toUriString() + FILE_DOWNLOAD_URI);

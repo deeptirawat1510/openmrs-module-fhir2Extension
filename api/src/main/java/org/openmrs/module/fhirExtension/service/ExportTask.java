@@ -7,4 +7,7 @@ public interface ExportTask {
 	
 	@Authorized(value = { "Export Patient Data" })
 	FhirTask getInitialTaskResponse();
+	
+	@Authorized(value = { "Export Patient Data" })
+	boolean validateParams(String startDate, String endDate);
 }
