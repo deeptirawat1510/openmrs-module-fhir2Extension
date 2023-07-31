@@ -37,4 +37,30 @@
             </list>
         </property>
     </bean>
+
+    <bean id="fileDownloadService" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager">
+            <ref bean="transactionManager"/>
+        </property>
+        <property name="preInterceptors">
+            <ref bean="serviceInterceptors"/>
+        </property>
+        <property name="transactionAttributeSource">
+            <ref bean="transactionAttributeSource"/>
+        </property>
+        <property name="target">
+            <bean class="org.openmrs.module.fhirExtension.service.impl.FileDownloadServiceImpl">
+                <constructor-arg ref="adminService" name="administrationService"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean parent="serviceContext">
+        <property name="moduleService">
+            <list merge="true">
+                <value>org.openmrs.module.fhirExtension.service.FileDownloadService</value>
+                <ref bean="fileDownloadService"/>
+            </list>
+        </property>
+    </bean>
 </beans>
