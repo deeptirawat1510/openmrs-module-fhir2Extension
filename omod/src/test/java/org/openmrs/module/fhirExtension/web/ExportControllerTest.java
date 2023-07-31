@@ -59,7 +59,7 @@ public class ExportControllerTest {
 	public void shouldGetFhirTaskUrl_whenFhirExportCalled() {
 		doNothing().when(exportAsyncService).export(any(), any(), any(), any(), any());
 		when(exportTask.getInitialTaskResponse()).thenReturn(mockFhirTask());
-		when(exportTask.validateParams("2023-05-01", "2023-05-31")).thenReturn(true);
+		when(exportTask.validateParams("2023-05-01", "2023-05-31")).thenReturn(null);
 		ResponseEntity<SimpleObject> responseEntity = exportController.export("2023-05-01", "2023-05-31");
 		SimpleObject simpleObject = responseEntity.getBody();
 		assertEquals(HttpStatus.ACCEPTED, responseEntity.getStatusCode());
@@ -72,7 +72,7 @@ public class ExportControllerTest {
 	public void shouldGetBadRequest_whenFhirExportCalledWithInvalidDateFormat() {
 		doNothing().when(exportAsyncService).export(any(), any(), any(), any(), any());
 		when(exportTask.getInitialTaskResponse()).thenReturn(mockFhirTask());
-		when(exportTask.validateParams("2023-05-AB", "2023-05-31")).thenReturn(false);
+		when(exportTask.validateParams("2023-05-AB", "2023-05-31")).thenReturn("Invalid Date Format [yyyy-mm-dd]");
 		ResponseEntity<SimpleObject> responseEntity = exportController.export("2023-05-AB", "2023-05-31");
 		SimpleObject simpleObject = responseEntity.getBody();
 		assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());

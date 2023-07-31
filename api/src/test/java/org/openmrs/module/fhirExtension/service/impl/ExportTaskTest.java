@@ -16,9 +16,8 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
@@ -52,27 +51,36 @@ public class ExportTaskTest {
 	}
 	
 	@Test
-	public void shouldReturnTrue_whenNoDateRangeProvided() {
-		boolean validParams = exportTask.validateParams(null, null);
-		assertTrue(validParams);
+	public void shouldNotReturnErrorMessage_whenNoDateRangeProvided() {
+		String errorMessage = exportTask.validateParams(null, null);
+		assertNull(errorMessage);
 	}
 	
 	@Test
-	public void shouldReturnTrue_whenValidDateRangeProvided() {
-		boolean validParams = exportTask.validateParams("2023-05-01", "2023-05-31");
-		assertTrue(validParams);
+	public void shouldNotReturnErrorMessage_whenValidDateRangeProvided() {
+		String errorMessage = exportTask.validateParams("2023-05-01", "2023-05-31");
+		assertNull(errorMessage);
 	}
 	
 	@Test
-	public void shouldReturnFalse_whenInvalidStartDateProvided() {
-		boolean validParams = exportTask.validateParams("2023-05-AB", "2023-05-31");
-		assertFalse(validParams);
+	public void shouldReturnErrorMessage_whenValidStartDateGreaterThanEndDate() {
+		String errorMessage = exportTask.validateParams("2023-06-01", "2023-05-31");
+		assertNotNull(errorMessage);
+		assertEquals("End date [2023-05-31] should be on or after start date [2023-06-01]", errorMessage);
 	}
 	
 	@Test
-	public void shouldReturnFalse_whenInvalidEndDateProvided() {
-		boolean validParams = exportTask.validateParams("2023-05-01", "2023-05-AB");
-		assertFalse(validParams);
+	public void shouldReturnErrorMessage_whenInvalidStartDateProvided() {
+		String errorMessage = exportTask.validateParams("2023-05-AB", "2023-05-31");
+		assertNotNull(errorMessage);
+		assertEquals("Invalid Date Format [yyyy-mm-dd]", errorMessage);
+	}
+	
+	@Test
+	public void shouldReturnErrorMessage_whenInvalidEndDateProvided() {
+		String errorMessage = exportTask.validateParams("2023-05-01", "2023-05-AB");
+		assertNotNull(errorMessage);
+		assertEquals("Invalid Date Format [yyyy-mm-dd]", errorMessage);
 	}
 	
 	private FhirTask mockFhirTask() {

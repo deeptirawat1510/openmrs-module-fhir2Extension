@@ -8,6 +8,8 @@ import org.openmrs.module.fhir2.model.FhirTask;
 import org.openmrs.module.fhirExtension.service.ExportTask;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
+
 import static org.openmrs.module.fhirExtension.export.Exporter.DATE_FORMAT;
 
 @Log4j2
@@ -35,16 +37,23 @@ public class ExportTaskImpl implements ExportTask {
 	}
 	
 	@Override
-	public boolean validateParams(String startDate, String endDate) {
+	public String validateParams(String startDateStr, String endDateStr) {
+		Date startDate = null;
+		Date endDate = null;
+		String validationErrorMessage = null;
 		try {
-			if (startDate != null)
-				DateUtils.parseDateStrictly(startDate, DATE_FORMAT);
-			if (endDate != null)
-				DateUtils.parseDateStrictly(endDate, DATE_FORMAT);
+			if (startDateStr != null)
+				startDate = DateUtils.parseDateStrictly(startDateStr, DATE_FORMAT);
+			if (endDateStr != null)
+				endDate = DateUtils.parseDateStrictly(endDateStr, DATE_FORMAT);
 		}
 		catch (Exception e) {
-			return false;
+			validationErrorMessage = "Invalid Date Format [yyyy-mm-dd]";
 		}
-		return true;
+		if (startDate != null && endDate != null && startDate.after(endDate)) {
+			validationErrorMessage = String.format("End date [%s] should be on or after start date [%s]", endDateStr,
+			    startDateStr);
+		}
+		return validationErrorMessage;
 	}
 }
