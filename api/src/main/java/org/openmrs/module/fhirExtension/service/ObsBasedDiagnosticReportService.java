@@ -164,16 +164,18 @@ public class ObsBasedDiagnosticReportService extends BaseFhirService<DiagnosticR
 
 			fhirDiagnosticReport.setEncounter(encounter);
 			if (attachmentObs.isEmpty()) {
-				Obs obs = reportResults.get(0);
-				LabResult labResult = LabResult.builder()
-						.setLabResultValue(obs)
-						.concept(fhirDiagnosticReport.getCode())
-						.obsFactory(newObs(fhirDiagnosticReport.getSubject(), fhirDiagnosticReport.getIssued()))
-						.build();
-				fhirDiagnosticReport.setResults(
-						Stream.of(diagnosticReportObsLabResultTranslator.toOpenmrsType(labResult))
-								.filter(Objects::nonNull)
-								.collect(Collectors.toSet()));
+				Set<Obs> reportObs = new HashSet<>();
+				for (Obs obs : reportResults) {
+					LabResult labResult = LabResult.builder()
+							.setLabResultValue(obs)
+							.concept(obs.getConcept())
+							.obsFactory(newObs(fhirDiagnosticReport.getSubject(), fhirDiagnosticReport.getIssued()))
+							.build();
+
+					Obs labResultObs = diagnosticReportObsLabResultTranslator.toOpenmrsType(labResult);
+					if(labResultObs!=null) reportObs.add(labResultObs);
+				}
+				fhirDiagnosticReport.setResults(reportObs);
 			}
 
 			diagnosticReportObsValidator.validate(fhirDiagnosticReport);
